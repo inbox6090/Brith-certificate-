@@ -1,0 +1,6 @@
+{
+  "name": "Birth Registration Management Prototype",
+  "description": "Demo System • Not an Official Government Service - Editable Birth Registration Certificate UI Prototype for testing, UI/UX design, and software demonstration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
