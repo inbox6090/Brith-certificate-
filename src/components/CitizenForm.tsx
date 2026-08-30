@@ -29,6 +29,7 @@ import { validateCertificateRecord, ValidationIssue } from '../utils/bdrisParser
 import { ValidationGuardModal } from './ValidationGuardModal';
 import { LogoWatermarkController } from './LogoWatermarkController';
 import { CertifiedCopyController } from './CertifiedCopyOverlay';
+import { SignaturePadModal } from './SignaturePadModal';
 import { 
   Save, 
   RotateCcw, 
@@ -53,7 +54,17 @@ import {
   Globe,
   Check,
   AlertTriangle,
-  Stamp
+  Stamp,
+  PenTool,
+  FileSignature,
+  Upload,
+  Trash2,
+  Image as ImageIcon,
+  RotateCw,
+  Eye,
+  EyeOff,
+  Plus,
+  Minus
 } from 'lucide-react';
 
 interface CitizenFormProps {
@@ -81,6 +92,10 @@ export const CitizenForm: React.FC<CitizenFormProps> = ({
   const [showSignatureSection, setShowSignatureSection] = useState<boolean>(true);
   const [validationModalOpen, setValidationModalOpen] = useState<boolean>(false);
   const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
+  
+  // Digital Signature Pad Modal State
+  const [signatureModalOpen, setSignatureModalOpen] = useState<boolean>(false);
+  const [activeSignatureTarget, setActiveSignatureTarget] = useState<'assistant' | 'registrar'>('registrar');
 
   // Auto Generate Verification Key
   const handleAutoGenerateKey = () => {
@@ -1385,10 +1400,146 @@ export const CitizenForm: React.FC<CitizenFormProps> = ({
               {/* Left Signature: Assistant / Administrative Officer */}
               <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-xs space-y-3">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                  <span className="text-xs font-bold text-slate-900">
-                    বাম দিকের সাইন (প্রশাসনিক কর্মকর্তা / সহকারী)
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-slate-900">
+                      বাম দিকের সাইন (সহকারী / কর্মকর্তা)
+                    </span>
+                    {formData.assistantSignatureUrl && (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                        formData.assistantSignatureVisible !== false 
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                          : 'bg-amber-50 text-amber-700 border border-amber-200'
+                      }`}>
+                        {formData.assistantSignatureVisible !== false ? 'সক্রিয়' : 'লুকানো'}
+                      </span>
+                    )}
+                  </div>
                   <span className="text-[10px] text-slate-500 font-mono">Seal and Signature</span>
+                </div>
+
+                {/* Digital Signature Pad / Upload Action for Assistant */}
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-md space-y-2.5">
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+                    <span className="flex items-center gap-1">
+                      <PenTool className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>ডিজিটাল স্বাক্ষর (Signature Image):</span>
+                    </span>
+                    {formData.assistantSignatureUrl && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const isVis = formData.assistantSignatureVisible !== false;
+                            handleChange('assistantSignatureVisible', !isVis);
+                          }}
+                          className="text-xs font-medium text-slate-600 hover:text-slate-900 flex items-center gap-1 cursor-pointer"
+                          title="সনদে স্বাক্ষর প্রদর্শন / গোপন করুন"
+                        >
+                          {formData.assistantSignatureVisible !== false ? (
+                            <>
+                              <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                              <span className="text-emerald-700">দৃশ্যমান</span>
+                            </>
+                          ) : (
+                            <>
+                              <EyeOff className="w-3.5 h-3.5 text-amber-600" />
+                              <span className="text-amber-700">লুকানো</span>
+                            </>
+                          )}
+                        </button>
+                        <span className="text-slate-300">|</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleChange('assistantSignatureUrl', undefined);
+                            handleChange('assistantSignatureHeight', undefined);
+                            handleChange('assistantSignatureRotation', undefined);
+                          }}
+                          className="text-red-500 hover:text-red-700 text-[11px] font-normal flex items-center gap-0.5 cursor-pointer"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>মুছুন</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {formData.assistantSignatureUrl ? (
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between gap-3 p-2.5 bg-white border border-slate-200 rounded-md">
+                        <div className="flex items-center justify-center bg-slate-50 border border-dashed border-slate-200 rounded p-1 min-w-[100px] h-14 overflow-hidden">
+                          <img 
+                            src={formData.assistantSignatureUrl} 
+                            alt="Assistant Signature" 
+                            style={{
+                              height: `${Math.min(48, formData.assistantSignatureHeight || 44)}px`,
+                              transform: `rotate(${formData.assistantSignatureRotation || 0}deg)`,
+                              opacity: formData.assistantSignatureVisible !== false ? 1 : 0.4
+                            }}
+                            className="object-contain transition-transform"
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveSignatureTarget('assistant');
+                            setSignatureModalOpen(true);
+                          }}
+                          className="px-3 py-1.5 text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-md font-semibold transition cursor-pointer flex items-center gap-1"
+                        >
+                          <Sliders className="w-3.5 h-3.5" />
+                          <span>এডিট ও রোটেট</span>
+                        </button>
+                      </div>
+
+                      {/* Controls for size & rotation directly inside form */}
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        <div>
+                          <div className="flex justify-between text-[11px] text-slate-600 mb-0.5 font-medium">
+                            <span>উচ্চতা (সাইজ):</span>
+                            <span className="font-mono text-emerald-700">{formData.assistantSignatureHeight || 48}px</span>
+                          </div>
+                          <input 
+                            type="range"
+                            min="24"
+                            max="80"
+                            step="2"
+                            value={formData.assistantSignatureHeight || 48}
+                            onChange={(e) => handleChange('assistantSignatureHeight', Number(e.target.value))}
+                            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                          />
+                        </div>
+                        <div>
+                          <div className="flex justify-between text-[11px] text-slate-600 mb-0.5 font-medium">
+                            <span>ঘূর্ণন (Rotation):</span>
+                            <span className="font-mono text-emerald-700">{formData.assistantSignatureRotation || 0}°</span>
+                          </div>
+                          <input 
+                            type="range"
+                            min="-25"
+                            max="25"
+                            step="1"
+                            value={formData.assistantSignatureRotation || 0}
+                            onChange={(e) => handleChange('assistantSignatureRotation', Number(e.target.value))}
+                            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveSignatureTarget('assistant');
+                        setSignatureModalOpen(true);
+                      }}
+                      className="w-full py-2.5 px-3 text-xs font-semibold text-emerald-800 bg-white hover:bg-emerald-50 border border-dashed border-emerald-300 rounded-md transition cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
+                    >
+                      <PenTool className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>স্বাক্ষর আঁকুন বা ছবি আপলোড করুন (AI Background Remove)</span>
+                    </button>
+                  )}
                 </div>
 
                 <div>
@@ -1421,10 +1572,146 @@ export const CitizenForm: React.FC<CitizenFormProps> = ({
               {/* Right Signature: Registrar / Chairman */}
               <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-xs space-y-3">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                  <span className="text-xs font-bold text-slate-900">
-                    ডান দিকের সাইন (চেয়ারম্যান / নিবন্ধক)
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-slate-900">
+                      ডান দিকের সাইন (চেয়ারম্যান / নিবন্ধক)
+                    </span>
+                    {formData.registrarSignatureUrl && (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                        formData.registrarSignatureVisible !== false 
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                          : 'bg-amber-50 text-amber-700 border border-amber-200'
+                      }`}>
+                        {formData.registrarSignatureVisible !== false ? 'সক্রিয়' : 'লুকানো'}
+                      </span>
+                    )}
+                  </div>
                   <span className="text-[10px] text-slate-500 font-mono">Seal and Signature</span>
+                </div>
+
+                {/* Digital Signature Pad / Upload Action for Chairman/Registrar */}
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-md space-y-2.5">
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+                    <span className="flex items-center gap-1">
+                      <PenTool className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>ডিজিটাল স্বাক্ষর (Signature Image):</span>
+                    </span>
+                    {formData.registrarSignatureUrl && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const isVis = formData.registrarSignatureVisible !== false;
+                            handleChange('registrarSignatureVisible', !isVis);
+                          }}
+                          className="text-xs font-medium text-slate-600 hover:text-slate-900 flex items-center gap-1 cursor-pointer"
+                          title="সনদে স্বাক্ষর প্রদর্শন / গোপন করুন"
+                        >
+                          {formData.registrarSignatureVisible !== false ? (
+                            <>
+                              <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                              <span className="text-emerald-700">দৃশ্যমান</span>
+                            </>
+                          ) : (
+                            <>
+                              <EyeOff className="w-3.5 h-3.5 text-amber-600" />
+                              <span className="text-amber-700">লুকানো</span>
+                            </>
+                          )}
+                        </button>
+                        <span className="text-slate-300">|</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleChange('registrarSignatureUrl', undefined);
+                            handleChange('registrarSignatureHeight', undefined);
+                            handleChange('registrarSignatureRotation', undefined);
+                          }}
+                          className="text-red-500 hover:text-red-700 text-[11px] font-normal flex items-center gap-0.5 cursor-pointer"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>মুছুন</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {formData.registrarSignatureUrl ? (
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between gap-3 p-2.5 bg-white border border-slate-200 rounded-md">
+                        <div className="flex items-center justify-center bg-slate-50 border border-dashed border-slate-200 rounded p-1 min-w-[100px] h-14 overflow-hidden">
+                          <img 
+                            src={formData.registrarSignatureUrl} 
+                            alt="Registrar Signature" 
+                            style={{
+                              height: `${Math.min(48, formData.registrarSignatureHeight || 44)}px`,
+                              transform: `rotate(${formData.registrarSignatureRotation || 0}deg)`,
+                              opacity: formData.registrarSignatureVisible !== false ? 1 : 0.4
+                            }}
+                            className="object-contain transition-transform"
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveSignatureTarget('registrar');
+                            setSignatureModalOpen(true);
+                          }}
+                          className="px-3 py-1.5 text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-md font-semibold transition cursor-pointer flex items-center gap-1"
+                        >
+                          <Sliders className="w-3.5 h-3.5" />
+                          <span>এডিট ও রোটেট</span>
+                        </button>
+                      </div>
+
+                      {/* Controls for size & rotation directly inside form */}
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        <div>
+                          <div className="flex justify-between text-[11px] text-slate-600 mb-0.5 font-medium">
+                            <span>উচ্চতা (সাইজ):</span>
+                            <span className="font-mono text-emerald-700">{formData.registrarSignatureHeight || 48}px</span>
+                          </div>
+                          <input 
+                            type="range"
+                            min="24"
+                            max="80"
+                            step="2"
+                            value={formData.registrarSignatureHeight || 48}
+                            onChange={(e) => handleChange('registrarSignatureHeight', Number(e.target.value))}
+                            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                          />
+                        </div>
+                        <div>
+                          <div className="flex justify-between text-[11px] text-slate-600 mb-0.5 font-medium">
+                            <span>ঘূর্ণন (Rotation):</span>
+                            <span className="font-mono text-emerald-700">{formData.registrarSignatureRotation || 0}°</span>
+                          </div>
+                          <input 
+                            type="range"
+                            min="-25"
+                            max="25"
+                            step="1"
+                            value={formData.registrarSignatureRotation || 0}
+                            onChange={(e) => handleChange('registrarSignatureRotation', Number(e.target.value))}
+                            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveSignatureTarget('registrar');
+                        setSignatureModalOpen(true);
+                      }}
+                      className="w-full py-2.5 px-3 text-xs font-semibold text-emerald-800 bg-white hover:bg-emerald-50 border border-dashed border-emerald-300 rounded-md transition cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
+                    >
+                      <PenTool className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>স্বাক্ষর আঁকুন বা ছবি আপলোড করুন (AI Background Remove)</span>
+                    </button>
+                  )}
                 </div>
 
                 <div>
@@ -1457,7 +1744,7 @@ export const CitizenForm: React.FC<CitizenFormProps> = ({
             </div>
 
             <div className="text-[11px] text-slate-600 bg-emerald-50/70 p-2.5 rounded border border-emerald-200">
-              💡 <strong>নমুনা অনুযায়ী:</strong> সরকারি বার্থ সার্টিফিকেটের অফিসিয়াল ফরম্যাটে বামে <code>Seal and Signature</code> এর নিচে <code>Assistant to Registrar</code> এবং ব্র্যাকেটে <code>(Preparation, Verification)</code> থাকে, এবং ডানে <code>Seal and Signature</code> এর নিচে <code>Registrar</code> থাকে। প্রয়োজনে আপনি যেকোনো সময় তা পরিবর্তন করতে পারেন।
+              💡 <strong>নমুনা অনুযায়ী:</strong> সরকারি বার্থ সার্টিফিকেটের অফিসিয়াল ফরম্যাটে বামে <code>Seal and Signature</code> এর নিচে <code>Assistant to Registrar</code> এবং ব্র্যাকেটে <code>(Preparation, Verification)</code> থাকে, এবং ডানে <code>Seal and Signature</code> এর নিচে <code>Registrar</code> থাকে। আপনি যেকোনো স্বাক্ষরের ছবি তুলে আপলোড করলে স্বয়ংক্রিয়ভাবে সাদা ব্যাকগ্রাউন্ড মুছে কাগজের আসল কালির রূপ দেওয়া হবে।
             </div>
 
           </div>
@@ -1505,6 +1792,75 @@ export const CitizenForm: React.FC<CitizenFormProps> = ({
         onClose={() => setValidationModalOpen(false)}
         issues={validationIssues}
         actionName="সংরক্ষণ ও সাবমিট"
+      />
+
+      {/* Digital Signature Pad Modal */}
+      <SignaturePadModal
+        isOpen={signatureModalOpen}
+        onClose={() => setSignatureModalOpen(false)}
+        title={
+          activeSignatureTarget === 'assistant'
+            ? 'প্রশাসনিক কর্মকর্তা / সহকারী স্বাক্ষর ও সিল (Assistant to Registrar)'
+            : 'চেয়ারম্যান ও নিবন্ধকের স্বাক্ষর ও সিল (Registrar / Chairman)'
+        }
+        currentSignatureUrl={
+          activeSignatureTarget === 'assistant'
+            ? formData.assistantSignatureUrl
+            : formData.registrarSignatureUrl
+        }
+        currentHeight={
+          activeSignatureTarget === 'assistant'
+            ? formData.assistantSignatureHeight || 48
+            : formData.registrarSignatureHeight || 48
+        }
+        currentRotation={
+          activeSignatureTarget === 'assistant'
+            ? formData.assistantSignatureRotation || 0
+            : formData.registrarSignatureRotation || 0
+        }
+        currentVisible={
+          activeSignatureTarget === 'assistant'
+            ? formData.assistantSignatureVisible !== false
+            : formData.registrarSignatureVisible !== false
+        }
+        onSaveSignature={({ signatureDataUrl, height, rotation, visible }) => {
+          if (activeSignatureTarget === 'assistant') {
+            setFormData((prev) => ({
+              ...prev,
+              assistantSignatureUrl: signatureDataUrl,
+              assistantSignatureHeight: height,
+              assistantSignatureRotation: rotation,
+              assistantSignatureVisible: visible
+            }));
+          } else {
+            setFormData((prev) => ({
+              ...prev,
+              registrarSignatureUrl: signatureDataUrl,
+              registrarSignatureHeight: height,
+              registrarSignatureRotation: rotation,
+              registrarSignatureVisible: visible
+            }));
+          }
+        }}
+        onRemoveSignature={() => {
+          if (activeSignatureTarget === 'assistant') {
+            setFormData((prev) => ({
+              ...prev,
+              assistantSignatureUrl: undefined,
+              assistantSignatureHeight: undefined,
+              assistantSignatureRotation: undefined,
+              assistantSignatureVisible: true
+            }));
+          } else {
+            setFormData((prev) => ({
+              ...prev,
+              registrarSignatureUrl: undefined,
+              registrarSignatureHeight: undefined,
+              registrarSignatureRotation: undefined,
+              registrarSignatureVisible: true
+            }));
+          }
+        }}
       />
 
     </form>

@@ -64,11 +64,26 @@ export interface DemoRecord {
   permanentAddressBn: string;
   permanentAddressEn: string;
 
-  // Signatories
+  // Signatories & Digital Signatures
   assistantTitleBn: string;
   assistantTitleEn: string;
+  assistantSignatureUrl?: string; // Digital signature (data URL or uploaded image)
+  assistantSignatureHeight?: number; // px, default ~48
+  assistantSignatureRotation?: number; // deg, default 0 (-45 to 45)
+  assistantSignatureOpacity?: number; // 0 - 100, default 100
+  assistantSignatureVisible?: boolean; // toggle signature on / off
+  assistantSignatureShowDate?: boolean;
+  assistantSignatureDate?: string;
+  
   registrarTitleBn: string;
   registrarTitleEn: string;
+  registrarSignatureUrl?: string; // Digital signature (data URL or uploaded image)
+  registrarSignatureHeight?: number; // px, default ~48
+  registrarSignatureRotation?: number; // deg, default 0 (-45 to 45)
+  registrarSignatureOpacity?: number; // 0 - 100, default 100
+  registrarSignatureVisible?: boolean; // toggle signature on / off
+  registrarSignatureShowDate?: boolean;
+  registrarSignatureDate?: string;
 
   // Custom Logo & Watermark Settings
   topLogoUrl?: string;
@@ -97,6 +112,9 @@ export interface DemoRecord {
   qrVerificationUrl?: string; // Full verification URL e.g. "https://bdris.gov.bd/certificate/verify?key=..."
   qrVerificationKey?: string; // 64-char key e.g. "Qtq6RrDDa4pD8RxM9kk6ZR4hBrlXEcYzrs3DQiZe3Vk9YtjZdVmsaufXJguELoG8"
   barcodeValue?: string; // Barcode value, defaults to referenceId (17-digit BRN)
+  barcodeHeight?: number; // Barcode height in px (24 - 48, default 32)
+  barcodeShowText?: boolean; // Show human-readable text under barcode (default false for official look)
+  barcodeVisible?: boolean; // Barcode visibility toggle (default true)
 
   // Metadata
   notes?: string;

@@ -239,9 +239,9 @@ export const BAHERATAIL_SUFFIX_BN = 'বহেরাতৈল, সখিপু�
 export const BAHERATAIL_SUFFIX_EN = 'Baheratail, Sakhipur, Tangail';
 
 export const FIXED_UNION_PARISHAD_BN = 'বহেরাতৈল ইউনিয়ন পরিষদ';
-export const FIXED_UNION_PARISHAD_EN = 'BAHERATAIL UNION PARISHAD';
+export const FIXED_UNION_PARISHAD_EN = 'Baheratail Union Parishad';
 export const FIXED_UPAZILA_DISTRICT_BN = 'সখিপুর, টাঙ্গাইল';
-export const FIXED_UPAZILA_DISTRICT_EN = 'SAKHIPUR, TANGAIL';
+export const FIXED_UPAZILA_DISTRICT_EN = 'Sakhipur, Tangail';
 
 // Official BDRIS Sample Signatures (Assistant to Registrar / Registrar)
 export const DEFAULT_ASSISTANT_TITLE_EN = 'Assistant to Registrar';

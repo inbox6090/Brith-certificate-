@@ -12,7 +12,7 @@ export const INITIAL_DEMO_RECORDS: DemoRecord[] = [
     officeNameBn: 'জন্ম ও মৃত্যু নিবন্ধকের কার্যালয়',
     officeNameEn: 'Office of the Registrar, Birth and Death Registration',
     unionParishadBn: 'বহেরাতৈল ইউনিয়ন পরিষদ',
-    unionParishadEn: 'BAHERATAIL UNION PARISHAD',
+    unionParishadEn: 'Baheratail Union Parishad',
     upazilaBn: 'সখিপুর',
     upazilaEn: 'Sakhipur',
     districtBn: 'টাঙ্গাইল',

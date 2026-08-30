@@ -13,8 +13,8 @@ import {
 import { DemoTopEmblem } from './DemoEmblem';
 
 interface NavbarProps {
-  currentTab: 'dashboard' | 'form' | 'preview' | 'pad' | 'logs';
-  onTabChange: (tab: 'dashboard' | 'form' | 'preview' | 'pad' | 'logs') => void;
+  currentTab: 'dashboard' | 'form' | 'preview' | 'pad' | 'workspace' | 'logs';
+  onTabChange: (tab: 'dashboard' | 'form' | 'preview' | 'pad' | 'workspace' | 'logs') => void;
   onNewRecord: () => void;
   onOpenLogs: () => void;
   onOpenExport: () => void;
@@ -127,6 +127,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span className="hidden sm:inline">e-Verify Auto-fill</span>
               </button>
             )}
+
+            <button
+              id="nav-tab-workspace"
+              onClick={() => onTabChange('workspace')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition cursor-pointer ${
+                currentTab === 'workspace'
+                  ? 'bg-emerald-800 text-white shadow-xs'
+                  : 'text-emerald-100 hover:bg-emerald-800/60 hover:text-white'
+              }`}
+            >
+              <Globe className="w-4 h-4 text-emerald-300" />
+              <span className="hidden sm:inline">Google Ecosystem</span>
+            </button>
 
             <button
               id="nav-tab-pad"

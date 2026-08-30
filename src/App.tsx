@@ -19,6 +19,7 @@ import { UnionParishadPad } from './components/UnionParishadPad';
 import { AuditLogModal } from './components/AuditLogModal';
 import { ExportModal } from './components/ExportModal';
 import { EverifyModal } from './components/EverifyModal';
+import { GoogleWorkspaceHub } from './components/GoogleWorkspaceHub';
 import { 
   FileText, 
   Eye, 
@@ -35,7 +36,7 @@ import {
 export default function App() {
   const [records, setRecords] = useState<DemoRecord[]>([]);
   const [currentRecord, setCurrentRecord] = useState<DemoRecord>(INITIAL_DEMO_RECORDS[0]);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'form' | 'preview' | 'pad' | 'logs'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'form' | 'preview' | 'pad' | 'workspace' | 'logs'>('dashboard');
   const [editorLayout, setEditorLayout] = useState<'split' | 'formOnly' | 'previewOnly'>('split');
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -191,6 +192,11 @@ export default function App() {
             onViewRecord={handleViewRecord}
             onDeleteRecord={handleDeleteRecord}
             onDuplicateRecord={handleDuplicateRecord}
+            onRecordsSynced={(synced) => {
+              setRecords(synced);
+              saveStoredRecords(synced);
+              showToast('Firebase Firestore থেকে রেকর্ড সফলভাবে সিঙ্ক হয়েছে!');
+            }}
             onPrintRecord={(rec) => {
               setCurrentRecord(rec);
               setActiveTab('preview');
@@ -394,6 +400,41 @@ export default function App() {
         {/* VIEW 4: UNION PARISHAD OFFICIAL PAD & DECLARATION */}
         {activeTab === 'pad' && (
           <UnionParishadPad />
+        )}
+
+        {/* VIEW 5: GOOGLE WORKSPACE & FIREBASE HUB */}
+        {activeTab === 'workspace' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between bg-white p-3.5 rounded-lg border border-slate-200 shadow-2xs">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setActiveTab('dashboard')}
+                  className="p-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition cursor-pointer"
+                  title="Back to Dashboard"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <div>
+                  <h2 className="text-sm sm:text-base font-bold text-slate-900 font-['Noto_Sans_Bengali']">
+                    Google Workspace &amp; Firebase ক্লাউড সেবা কেন্দ্র
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Drive, Sheets, Docs, Forms, Tasks, Contacts, Gmail &amp; Slides Integration
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <GoogleWorkspaceHub
+              records={records}
+              selectedRecord={currentRecord}
+              onRecordsSynced={(synced) => {
+                setRecords(synced);
+                saveStoredRecords(synced);
+                showToast('Firebase Firestore থেকে রেকর্ড সফলভাবে সিঙ্ক হয়েছে!');
+              }}
+            />
+          </div>
         )}
 
       </main>

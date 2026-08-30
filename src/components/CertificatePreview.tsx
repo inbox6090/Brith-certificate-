@@ -6,6 +6,7 @@ import { DemoBarcode } from './DemoBarcode';
 import { LogoWatermarkController } from './LogoWatermarkController';
 import { CertifiedCopyOverlay, CertifiedCopyController } from './CertifiedCopyOverlay';
 import { ValidationGuardModal } from './ValidationGuardModal';
+import { SignaturePadModal } from './SignaturePadModal';
 import { 
   validateCertificateRecord, 
   downloadCertificatePdf, 
@@ -49,7 +50,15 @@ import {
   AlertTriangle,
   Globe,
   Stamp,
-  Layers
+  Layers,
+  PenTool,
+  FileSignature,
+  RotateCw,
+  Eye,
+  EyeOff,
+  Plus,
+  Minus,
+  Trash2
 } from 'lucide-react';
 
 interface CertificatePreviewProps {
@@ -75,6 +84,10 @@ export const CertificatePreview: React.FC<CertificatePreviewProps> = ({
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isExportingImage, setIsExportingImage] = useState(false);
   const [isSavingDrive, setIsSavingDrive] = useState(false);
+
+  // Digital Signature Modal State
+  const [signatureModalOpen, setSignatureModalOpen] = useState(false);
+  const [activeSignatureTarget, setActiveSignatureTarget] = useState<'assistant' | 'registrar'>('registrar');
 
   // Validation Guard Modal State
   const [validationModalOpen, setValidationModalOpen] = useState(false);
@@ -295,6 +308,27 @@ export const CertificatePreview: React.FC<CertificatePreviewProps> = ({
                   {isInlineEditing ? <Check className="w-3.5 h-3.5" /> : <Edit3 className="w-3.5 h-3.5" />}
                   <span>{isInlineEditing ? 'সম্পাদনা সম্পন্ন' : 'সনদে সরাসরি লিখুন'}</span>
                 </button>
+
+                <button
+                  id="btn-open-signature-manager"
+                  onClick={() => {
+                    setActiveSignatureTarget('registrar');
+                    setSignatureModalOpen(true);
+                  }}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition cursor-pointer border ${
+                    record.registrarSignatureUrl || record.assistantSignatureUrl
+                      ? 'bg-emerald-700 text-white border-emerald-500 font-bold'
+                      : 'bg-emerald-800 text-emerald-100 border-emerald-700 hover:bg-emerald-700'
+                  }`}
+                  title="চেয়ারম্যান ও প্রশাসনিক কর্মকর্তার ডিজিটাল স্বাক্ষর আঁকুন বা আপলোড করুন"
+                >
+                  <PenTool className="w-3.5 h-3.5 text-emerald-300" />
+                  <span>
+                    {record.registrarSignatureUrl || record.assistantSignatureUrl
+                      ? 'ডিজিটাল স্বাক্ষর (যুক্ত আছে)'
+                      : 'ডিজিটাল স্বাক্ষর (Draw/Upload)'}
+                  </span>
+                </button>
               </>
             )}
 
@@ -390,26 +424,58 @@ export const CertificatePreview: React.FC<CertificatePreviewProps> = ({
               </div>
             </div>
 
-            {/* Field 2: Barcode value */}
-            <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700">
-              <label className="block text-xs font-semibold text-emerald-300 mb-1">
-                বারকোড নম্বর (Barcode Value):
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={record.barcodeValue || record.referenceId || '19879318513121621'}
-                  onChange={(e) => handleFieldChange('barcodeValue', e.target.value)}
-                  placeholder="19879318513121621"
-                  className="w-full text-sm font-mono font-bold px-3 py-1.5 border border-slate-600 rounded bg-slate-900 text-white focus:ring-1 focus:ring-emerald-400 focus:outline-hidden"
-                />
+            {/* Field 2: Barcode value & options */}
+            <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-emerald-300">
+                  বারকোড (Code 128 Standard Barcode):
+                </label>
                 <button
                   type="button"
                   onClick={() => handleFieldChange('barcodeValue', record.referenceId || '19879318513121621')}
-                  className="px-2.5 py-1.5 text-xs font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200 rounded cursor-pointer whitespace-nowrap"
+                  className="px-2 py-0.5 text-[11px] font-semibold bg-emerald-700 hover:bg-emerald-600 text-white rounded cursor-pointer"
+                  title="রেফারেন্স নম্বর বা BRN-এর সাথে হুবহু সিঙ্ক করুন"
                 >
-                  BRN সিঙ্ক
+                  ⚡ BRN সিঙ্ক
                 </button>
+              </div>
+
+              <input
+                type="text"
+                value={record.barcodeValue || record.referenceId || '19879318513121621'}
+                onChange={(e) => handleFieldChange('barcodeValue', e.target.value)}
+                placeholder="19879318513121621"
+                className="w-full text-sm font-mono font-bold px-3 py-1.5 border border-slate-600 rounded bg-slate-900 text-white focus:ring-1 focus:ring-emerald-400 focus:outline-hidden"
+              />
+
+              {/* Barcode Controls: Height & Text display */}
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <div>
+                  <div className="flex justify-between text-[11px] text-slate-300 mb-1">
+                    <span>উচ্চতা (Height):</span>
+                    <span className="font-mono text-emerald-300 font-bold">{record.barcodeHeight || 32}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="20"
+                    max="48"
+                    step="2"
+                    value={record.barcodeHeight || 32}
+                    onChange={(e) => handleFieldChange('barcodeHeight', Number(e.target.value))}
+                    className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-400"
+                  />
+                </div>
+                <div className="flex flex-col justify-end">
+                  <label className="inline-flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={record.barcodeShowText || false}
+                      onChange={(e) => handleFieldChange('barcodeShowText', e.target.checked)}
+                      className="rounded border-slate-600 bg-slate-900 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <span>নিচে সংখ্যা দেখান</span>
+                  </label>
+                </div>
               </div>
             </div>
           </div>
@@ -545,10 +611,16 @@ export const CertificatePreview: React.FC<CertificatePreviewProps> = ({
                 </div>
               </div>
 
-              {/* Right Barcode */}
-              <div className="col-span-3 flex justify-end pt-1.5">
+              {/* Right Barcode (Official Code 128 dynamic vector barcode reflecting Reference ID) */}
+              <div 
+                className="col-span-3 flex justify-end pt-1.5 cursor-pointer"
+                title="বারকোড সেটিং পরিবর্তন করতে ক্লিক করুন"
+                onClick={() => onUpdateRecord && setShowQrSettings(true)}
+              >
                 <DemoBarcode 
                   referenceNumber={record.barcodeValue || record.referenceId || "19879318513121621"} 
+                  height={record.barcodeHeight || 32}
+                  showText={record.barcodeShowText || false}
                   isInlineEditing={isInlineEditing}
                   onBarcodeChange={(val) => handleFieldChange('barcodeValue', val)}
                 />
@@ -592,10 +664,10 @@ export const CertificatePreview: React.FC<CertificatePreviewProps> = ({
                     type="text"
                     value={record.unionParishadEn || FIXED_UNION_PARISHAD_EN}
                     onChange={(e) => handleFieldChange('unionParishadEn', e.target.value)}
-                    className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-xs uppercase font-medium"
+                    className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-xs font-medium"
                   />
                 ) : (
-                  (record.unionParishadEn || FIXED_UNION_PARISHAD_EN).toUpperCase()
+                  record.unionParishadEn || "Baheratail Union Parishad"
                 )}
               </div>
               
@@ -606,18 +678,18 @@ export const CertificatePreview: React.FC<CertificatePreviewProps> = ({
                       type="text"
                       value={record.upazilaEn || "Sakhipur"}
                       onChange={(e) => handleFieldChange('upazilaEn', e.target.value)}
-                      className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-24 uppercase"
+                      className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-24"
                     />
                     <span>,</span>
                     <input
                       type="text"
                       value={record.districtEn || "Tangail"}
                       onChange={(e) => handleFieldChange('districtEn', e.target.value)}
-                      className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-24 uppercase"
+                      className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-24"
                     />
                   </div>
                 ) : (
-                  `${record.upazilaEn || "Sakhipur"}, ${record.districtEn || "Tangail"}`.toUpperCase()
+                  `${record.upazilaEn || "Sakhipur"}, ${record.districtEn || "Tangail"}`
                 )}
               </div>
               
@@ -996,8 +1068,25 @@ export const CertificatePreview: React.FC<CertificatePreviewProps> = ({
                       />
                     ) : (
                       <div className="space-y-0.5">
-                        <div>দাবাইল নাগবাড়ী-১৯৭২, ওয়ার্ড - ১,</div>
-                        <div>বহেড়াতৈল, সখিপুর, টাঙ্গাইল</div>
+                        {record.permanentAddressBn ? (
+                          record.permanentAddressBn.includes('\n') ? (
+                            record.permanentAddressBn.split('\n').map((line, idx) => (
+                              <div key={idx}>{line}</div>
+                            ))
+                          ) : record.permanentAddressBn.includes('ওয়ার্ড') ? (
+                            <>
+                              <div>{record.permanentAddressBn.split(',')[0]}, {record.permanentAddressBn.split(',')[1]},</div>
+                              <div>{record.permanentAddressBn.split(',').slice(2).join(',').trim()}</div>
+                            </>
+                          ) : (
+                            <div>{record.permanentAddressBn}</div>
+                          )
+                        ) : (
+                          <>
+                            <div>দাবাইল নাগবাড়ী-১৯৭২, ওয়ার্ড - ১,</div>
+                            <div>বহেরাতৈল, সখিপুর, টাঙ্গাইল</div>
+                          </>
+                        )}
                       </div>
                     )}
                   </span>
@@ -1018,9 +1107,26 @@ export const CertificatePreview: React.FC<CertificatePreviewProps> = ({
                       />
                     ) : (
                       <div className="space-y-0.5">
-                        <div>Dabail Nagbari-1972, Ward -</div>
-                        <div>1, Baheratail, Sakhipur,</div>
-                        <div>Tangail</div>
+                        {record.permanentAddressEn ? (
+                          record.permanentAddressEn.includes('\n') ? (
+                            record.permanentAddressEn.split('\n').map((line, idx) => (
+                              <div key={idx}>{line}</div>
+                            ))
+                          ) : record.permanentAddressEn.includes('Ward') ? (
+                            <>
+                              <div>{record.permanentAddressEn.split('Ward')[0]}Ward -</div>
+                              <div>{record.permanentAddressEn.split('Ward')[1]?.replace(/^[\s\-]+/, '') || '1, Baheratail, Sakhipur, Tangail'}</div>
+                            </>
+                          ) : (
+                            <div>{record.permanentAddressEn}</div>
+                          )
+                        ) : (
+                          <>
+                            <div>Dabail Nagbari-1972, Ward -</div>
+                            <div>1, Baheratail, Sakhipur,</div>
+                            <div>Tangail</div>
+                          </>
+                        )}
                       </div>
                     )}
                   </span>
@@ -1034,13 +1140,150 @@ export const CertificatePreview: React.FC<CertificatePreviewProps> = ({
           {/* Bottom Signatures & Footer Notice (Exact alignment matching screenshot) */}
           <div className="mt-auto pt-8">
             
-            {/* Signature Blocks (Clean layout with empty space for seal/signature matching official sample) */}
+            {/* Signature Blocks with Optional Digital Signature & Seal Rendering */}
             <div className="grid grid-cols-2 gap-8 items-end pb-12">
               
               {/* Left: Assistant Signature Block */}
-              <div className="flex flex-col items-center text-center">
+              <div className="flex flex-col items-center text-center relative group">
+                {/* Rendered Digital Signature if present */}
+                {record.assistantSignatureUrl ? (
+                  <div className="relative flex flex-col items-center mb-1">
+                    {record.assistantSignatureVisible !== false ? (
+                      <img 
+                        src={record.assistantSignatureUrl} 
+                        alt="Assistant Signature" 
+                        style={{ 
+                          height: `${record.assistantSignatureHeight || 48}px`,
+                          transform: `rotate(${record.assistantSignatureRotation || 0}deg)`
+                        }}
+                        className="max-w-[150px] object-contain filter drop-shadow-xs transition-transform"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="h-9 flex items-center justify-center text-[10px] text-slate-400 border border-dashed border-slate-300 rounded px-2 py-0.5 mb-1 print:hidden bg-slate-50">
+                        <EyeOff className="w-3 h-3 text-slate-400 mr-1" />
+                        <span>স্বাক্ষর লুকানো রয়েছে</span>
+                      </div>
+                    )}
+
+                    {onUpdateRecord && (
+                      <div className="absolute -top-7 left-1/2 -translate-x-1/2 flex items-center gap-0.5 bg-slate-900/90 text-white px-2 py-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-20 print:hidden text-[10px]">
+                        {/* Size Minus */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const curH = record.assistantSignatureHeight || 48;
+                            handleFieldChange('assistantSignatureHeight', Math.max(24, curH - 4));
+                          }}
+                          className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
+                          title="ছোট করুন (-4px)"
+                        >
+                          <Minus className="w-2.5 h-2.5" />
+                        </button>
+                        <span className="font-mono px-0.5 text-[9px] text-emerald-400">
+                          {record.assistantSignatureHeight || 48}px
+                        </span>
+                        {/* Size Plus */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const curH = record.assistantSignatureHeight || 48;
+                            handleFieldChange('assistantSignatureHeight', Math.min(96, curH + 4));
+                          }}
+                          className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
+                          title="বড় করুন (+4px)"
+                        >
+                          <Plus className="w-2.5 h-2.5" />
+                        </button>
+
+                        <div className="w-px h-3 bg-slate-700 mx-0.5" />
+
+                        {/* Rotate Left */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const curR = record.assistantSignatureRotation || 0;
+                            handleFieldChange('assistantSignatureRotation', Math.max(-30, curR - 3));
+                          }}
+                          className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
+                          title="বামে ঘোরান (-3°)"
+                        >
+                          <RotateCcw className="w-2.5 h-2.5" />
+                        </button>
+                        {/* Rotate Right */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const curR = record.assistantSignatureRotation || 0;
+                            handleFieldChange('assistantSignatureRotation', Math.min(30, curR + 3));
+                          }}
+                          className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
+                          title="ডানে ঘোরান (+3°)"
+                        >
+                          <RotateCw className="w-2.5 h-2.5" />
+                        </button>
+
+                        <div className="w-px h-3 bg-slate-700 mx-0.5" />
+
+                        {/* Visibility Toggle */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const isVis = record.assistantSignatureVisible !== false;
+                            handleFieldChange('assistantSignatureVisible', !isVis);
+                          }}
+                          className={`p-1 hover:bg-slate-700 rounded-full ${
+                            record.assistantSignatureVisible !== false ? 'text-emerald-400' : 'text-amber-400'
+                          }`}
+                          title={record.assistantSignatureVisible !== false ? "স্বাক্ষর সাময়িক লুকান" : "স্বাক্ষর প্রদর্শন করুন"}
+                        >
+                          {record.assistantSignatureVisible !== false ? <Eye className="w-2.5 h-2.5" /> : <EyeOff className="w-2.5 h-2.5" />}
+                        </button>
+
+                        {/* Edit Pad */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveSignatureTarget('assistant');
+                            setSignatureModalOpen(true);
+                          }}
+                          className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
+                          title="স্বাক্ষর পরিবর্তন ও AI ব্যাকগ্রাউন্ড রিমুভ"
+                        >
+                          <Edit3 className="w-2.5 h-2.5" />
+                        </button>
+
+                        {/* Delete */}
+                        <button
+                          type="button"
+                          onClick={() => handleFieldChange('assistantSignatureUrl', undefined)}
+                          className="p-1 hover:bg-red-800 rounded-full text-red-400 hover:text-red-200"
+                          title="স্বাক্ষর মুছুন"
+                        >
+                          <Trash2 className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : onUpdateRecord ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveSignatureTarget('assistant');
+                      setSignatureModalOpen(true);
+                    }}
+                    className="mb-2 px-2.5 py-1 text-[11px] font-medium text-slate-600 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-800 border border-dashed border-slate-300 hover:border-emerald-500 rounded-md transition cursor-pointer print:hidden flex items-center gap-1"
+                    title="প্রশাসনিক কর্মকর্তা / সহকারী স্বাক্ষর আঁকুন বা আপলোড করুন"
+                  >
+                    <PenTool className="w-3 h-3 text-emerald-600" />
+                    <span>+ ডিজিটাল স্বাক্ষর যুক্ত করুন</span>
+                  </button>
+                ) : (
+                  <div className="h-6" />
+                )}
+
                 <span className="text-[13px] text-slate-850 font-normal">
-                  Seal and Signature
+                  Seal &amp; Signature
                 </span>
                 <span className="text-[13.5px] font-bold text-slate-950 mt-1">
                   {isInlineEditing ? (
@@ -1069,9 +1312,146 @@ export const CertificatePreview: React.FC<CertificatePreviewProps> = ({
               </div>
 
               {/* Right: Registrar Signature Block */}
-              <div className="flex flex-col items-center text-center">
+              <div className="flex flex-col items-center text-center relative group">
+                {/* Rendered Digital Signature if present */}
+                {record.registrarSignatureUrl ? (
+                  <div className="relative flex flex-col items-center mb-1">
+                    {record.registrarSignatureVisible !== false ? (
+                      <img 
+                        src={record.registrarSignatureUrl} 
+                        alt="Registrar Signature" 
+                        style={{ 
+                          height: `${record.registrarSignatureHeight || 48}px`,
+                          transform: `rotate(${record.registrarSignatureRotation || 0}deg)`
+                        }}
+                        className="max-w-[150px] object-contain filter drop-shadow-xs transition-transform"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="h-9 flex items-center justify-center text-[10px] text-slate-400 border border-dashed border-slate-300 rounded px-2 py-0.5 mb-1 print:hidden bg-slate-50">
+                        <EyeOff className="w-3 h-3 text-slate-400 mr-1" />
+                        <span>স্বাক্ষর লুকানো রয়েছে</span>
+                      </div>
+                    )}
+
+                    {onUpdateRecord && (
+                      <div className="absolute -top-7 left-1/2 -translate-x-1/2 flex items-center gap-0.5 bg-slate-900/90 text-white px-2 py-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-20 print:hidden text-[10px]">
+                        {/* Size Minus */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const curH = record.registrarSignatureHeight || 48;
+                            handleFieldChange('registrarSignatureHeight', Math.max(24, curH - 4));
+                          }}
+                          className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
+                          title="ছোট করুন (-4px)"
+                        >
+                          <Minus className="w-2.5 h-2.5" />
+                        </button>
+                        <span className="font-mono px-0.5 text-[9px] text-emerald-400">
+                          {record.registrarSignatureHeight || 48}px
+                        </span>
+                        {/* Size Plus */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const curH = record.registrarSignatureHeight || 48;
+                            handleFieldChange('registrarSignatureHeight', Math.min(96, curH + 4));
+                          }}
+                          className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
+                          title="বড় করুন (+4px)"
+                        >
+                          <Plus className="w-2.5 h-2.5" />
+                        </button>
+
+                        <div className="w-px h-3 bg-slate-700 mx-0.5" />
+
+                        {/* Rotate Left */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const curR = record.registrarSignatureRotation || 0;
+                            handleFieldChange('registrarSignatureRotation', Math.max(-30, curR - 3));
+                          }}
+                          className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
+                          title="বামে ঘোরান (-3°)"
+                        >
+                          <RotateCcw className="w-2.5 h-2.5" />
+                        </button>
+                        {/* Rotate Right */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const curR = record.registrarSignatureRotation || 0;
+                            handleFieldChange('registrarSignatureRotation', Math.min(30, curR + 3));
+                          }}
+                          className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
+                          title="ডানে ঘোরান (+3°)"
+                        >
+                          <RotateCw className="w-2.5 h-2.5" />
+                        </button>
+
+                        <div className="w-px h-3 bg-slate-700 mx-0.5" />
+
+                        {/* Visibility Toggle */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const isVis = record.registrarSignatureVisible !== false;
+                            handleFieldChange('registrarSignatureVisible', !isVis);
+                          }}
+                          className={`p-1 hover:bg-slate-700 rounded-full ${
+                            record.registrarSignatureVisible !== false ? 'text-emerald-400' : 'text-amber-400'
+                          }`}
+                          title={record.registrarSignatureVisible !== false ? "স্বাক্ষর সাময়িক লুকান" : "স্বাক্ষর প্রদর্শন করুন"}
+                        >
+                          {record.registrarSignatureVisible !== false ? <Eye className="w-2.5 h-2.5" /> : <EyeOff className="w-2.5 h-2.5" />}
+                        </button>
+
+                        {/* Edit Pad */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveSignatureTarget('registrar');
+                            setSignatureModalOpen(true);
+                          }}
+                          className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
+                          title="স্বাক্ষর পরিবর্তন ও AI ব্যাকগ্রাউন্ড রিমুভ"
+                        >
+                          <Edit3 className="w-2.5 h-2.5" />
+                        </button>
+
+                        {/* Delete */}
+                        <button
+                          type="button"
+                          onClick={() => handleFieldChange('registrarSignatureUrl', undefined)}
+                          className="p-1 hover:bg-red-800 rounded-full text-red-400 hover:text-red-200"
+                          title="স্বাক্ষর মুছুন"
+                        >
+                          <Trash2 className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : onUpdateRecord ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveSignatureTarget('registrar');
+                      setSignatureModalOpen(true);
+                    }}
+                    className="mb-2 px-2.5 py-1 text-[11px] font-medium text-slate-600 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-800 border border-dashed border-slate-300 hover:border-emerald-500 rounded-md transition cursor-pointer print:hidden flex items-center gap-1"
+                    title="চেয়ারম্যান / নিবন্ধক স্বাক্ষর আঁকুন বা আপলোড করুন"
+                  >
+                    <PenTool className="w-3 h-3 text-emerald-600" />
+                    <span>+ ডিজিটাল স্বাক্ষর যুক্ত করুন</span>
+                  </button>
+                ) : (
+                  <div className="h-6" />
+                )}
+
                 <span className="text-[13px] text-slate-850 font-normal">
-                  Seal and Signature
+                  Seal &amp; Signature
                 </span>
                 <span className="text-[13.5px] font-bold text-slate-950 mt-1">
                   {isInlineEditing ? (
@@ -1121,6 +1501,77 @@ export const CertificatePreview: React.FC<CertificatePreviewProps> = ({
         onClose={() => setValidationModalOpen(false)}
         issues={validationIssues}
         actionName={blockedActionName}
+      />
+
+      {/* Digital Signature Pad Modal */}
+      <SignaturePadModal
+        isOpen={signatureModalOpen}
+        onClose={() => setSignatureModalOpen(false)}
+        title={
+          activeSignatureTarget === 'assistant'
+            ? 'প্রশাসনিক কর্মকর্তা / সহকারী স্বাক্ষর ও সিল (Assistant to Registrar)'
+            : 'চেয়ারম্যান ও নিবন্ধকের স্বাক্ষর ও সিল (Registrar / Chairman)'
+        }
+        currentSignatureUrl={
+          activeSignatureTarget === 'assistant'
+            ? record.assistantSignatureUrl
+            : record.registrarSignatureUrl
+        }
+        currentHeight={
+          activeSignatureTarget === 'assistant'
+            ? record.assistantSignatureHeight || 48
+            : record.registrarSignatureHeight || 48
+        }
+        currentRotation={
+          activeSignatureTarget === 'assistant'
+            ? record.assistantSignatureRotation || 0
+            : record.registrarSignatureRotation || 0
+        }
+        currentVisible={
+          activeSignatureTarget === 'assistant'
+            ? record.assistantSignatureVisible !== false
+            : record.registrarSignatureVisible !== false
+        }
+        onSaveSignature={({ signatureDataUrl, height, rotation, visible }) => {
+          if (!onUpdateRecord) return;
+          if (activeSignatureTarget === 'assistant') {
+            onUpdateRecord({
+              ...record,
+              assistantSignatureUrl: signatureDataUrl,
+              assistantSignatureHeight: height,
+              assistantSignatureRotation: rotation,
+              assistantSignatureVisible: visible
+            });
+          } else {
+            onUpdateRecord({
+              ...record,
+              registrarSignatureUrl: signatureDataUrl,
+              registrarSignatureHeight: height,
+              registrarSignatureRotation: rotation,
+              registrarSignatureVisible: visible
+            });
+          }
+        }}
+        onRemoveSignature={() => {
+          if (!onUpdateRecord) return;
+          if (activeSignatureTarget === 'assistant') {
+            onUpdateRecord({
+              ...record,
+              assistantSignatureUrl: undefined,
+              assistantSignatureHeight: undefined,
+              assistantSignatureRotation: undefined,
+              assistantSignatureVisible: true
+            });
+          } else {
+            onUpdateRecord({
+              ...record,
+              registrarSignatureUrl: undefined,
+              registrarSignatureHeight: undefined,
+              registrarSignatureRotation: undefined,
+              registrarSignatureVisible: true
+            });
+          }
+        }}
       />
     </div>
   );

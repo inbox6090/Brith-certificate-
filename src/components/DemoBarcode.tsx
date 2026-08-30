@@ -1,82 +1,63 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import { generateCode128 } from '../utils/barcodeGenerator';
 
 interface DemoBarcodeProps {
   className?: string;
   referenceNumber?: string;
   isInlineEditing?: boolean;
   onBarcodeChange?: (val: string) => void;
+  showText?: boolean;
+  height?: number;
 }
 
 export const DemoBarcode: React.FC<DemoBarcodeProps> = ({
   className = '',
   referenceNumber = '19879318513121621',
   isInlineEditing = false,
-  onBarcodeChange
+  onBarcodeChange,
+  showText = false,
+  height = 32
 }) => {
-  // Generate deterministic bar widths based on reference number
-  const bars = React.useMemo(() => {
-    const raw = (referenceNumber || '19879318513121621').replace(/\D/g, '') || '19879318513121621';
-    const result: { x: number; width: number }[] = [];
-    let currentX = 0;
+  const effectiveRef = referenceNumber?.trim() || '19879318513121621';
 
-    // Start pattern
-    result.push({ x: currentX, width: 2 });
-    currentX += 4;
-    result.push({ x: currentX, width: 1.5 });
-    currentX += 3;
-    result.push({ x: currentX, width: 3 });
-    currentX += 5;
-
-    // Digits pattern
-    for (let i = 0; i < raw.length; i++) {
-      const digit = parseInt(raw[i], 10) || 1;
-      const w1 = (digit % 3) * 0.8 + 1.2;
-      const w2 = ((digit + 1) % 4) * 0.7 + 1.0;
-      const gap1 = ((digit + 2) % 3) * 0.8 + 1.5;
-      const gap2 = ((digit + 3) % 4) * 0.7 + 1.8;
-
-      result.push({ x: currentX, width: w1 });
-      currentX += w1 + gap1;
-      result.push({ x: currentX, width: w2 });
-      currentX += w2 + gap2;
-    }
-
-    // Stop pattern
-    result.push({ x: currentX, width: 3 });
-    currentX += 5;
-    result.push({ x: currentX, width: 1.5 });
-    currentX += 3;
-    result.push({ x: currentX, width: 2 });
-    currentX += 2;
-
-    return { bars: result, totalWidth: currentX };
-  }, [referenceNumber]);
+  // Compute standard Code 128 vector bars
+  const barcodeData = useMemo(() => {
+    return generateCode128(effectiveRef);
+  }, [effectiveRef]);
 
   return (
     <div 
       id="demo-barcode-container"
       className={`inline-flex flex-col items-end select-none text-right ${className}`}
-      title={`Barcode: ${referenceNumber}`}
+      title={`Official Code 128 Barcode: ${effectiveRef}`}
     >
-      <div className="flex items-center justify-end">
-        {/* SVG Vector Barcode Lines matching official BDRIS page 1 */}
+      <div className="flex items-center justify-end bg-white/50 p-0.5 rounded">
+        {/* Crisp Standard Code 128 Vector Barcode matching official BDRIS Certificate header */}
         <svg 
-          viewBox={`0 0 ${Math.max(bars.totalWidth, 160)} 38`} 
-          className="w-32 h-8 text-black"
+          viewBox={`0 0 ${barcodeData.totalWidth} ${height}`} 
+          style={{ height: `${height}px`, width: 'auto', maxWidth: '140px' }}
+          className="text-black overflow-visible"
           xmlns="http://www.w3.org/2000/svg"
+          shapeRendering="crispEdges"
         >
-          {bars.bars.map((bar, idx) => (
+          {barcodeData.bars.map((bar, idx) => (
             <rect 
               key={idx} 
               x={bar.x} 
               y="0" 
               width={bar.width} 
-              height="38" 
+              height={height} 
               fill="currentColor" 
             />
           ))}
         </svg>
       </div>
+
+      {showText && (
+        <span className="text-[9px] font-mono tracking-wider text-slate-800 font-semibold mt-0.5">
+          {effectiveRef}
+        </span>
+      )}
 
       {isInlineEditing && (
         <input
@@ -90,4 +71,3 @@ export const DemoBarcode: React.FC<DemoBarcodeProps> = ({
     </div>
   );
 };
-
