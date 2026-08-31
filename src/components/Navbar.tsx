@@ -8,13 +8,14 @@ import {
   FileCheck2,
   ScrollText,
   Building2,
-  Globe
+  Globe,
+  Cpu
 } from 'lucide-react';
 import { DemoTopEmblem } from './DemoEmblem';
 
 interface NavbarProps {
-  currentTab: 'dashboard' | 'form' | 'preview' | 'pad' | 'workspace' | 'logs';
-  onTabChange: (tab: 'dashboard' | 'form' | 'preview' | 'pad' | 'workspace' | 'logs') => void;
+  currentTab: 'dashboard' | 'mcp' | 'form' | 'preview' | 'pad' | 'workspace' | 'logs';
+  onTabChange: (tab: 'dashboard' | 'mcp' | 'form' | 'preview' | 'pad' | 'workspace' | 'logs') => void;
   onNewRecord: () => void;
   onOpenLogs: () => void;
   onOpenExport: () => void;
@@ -87,6 +88,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="text-[10px] bg-emerald-950 px-1.5 py-0.5 rounded font-mono">
                 {totalRecordsCount}
               </span>
+            </button>
+
+            <button
+              id="nav-tab-mcp"
+              onClick={() => onTabChange('mcp')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition cursor-pointer ${
+                currentTab === 'mcp'
+                  ? 'bg-emerald-800 text-white shadow-xs'
+                  : 'text-emerald-100 hover:bg-emerald-800/60 hover:text-white'
+              }`}
+            >
+              <Cpu className="w-4 h-4 text-emerald-300" />
+              <span className="hidden sm:inline">MCP ও অটোমেশন</span>
             </button>
 
             <button

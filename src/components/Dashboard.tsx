@@ -25,9 +25,14 @@ import {
   X,
   Sparkles,
   User,
-  Fingerprint
+  Fingerprint,
+  Cpu,
+  Play,
+  ArrowRight,
+  HardDrive
 } from 'lucide-react';
 import { GoogleWorkspaceHub } from './GoogleWorkspaceHub';
+import { MonthlyAnalyticsChart } from './MonthlyAnalyticsChart';
 
 interface DashboardProps {
   records: DemoRecord[];
@@ -37,6 +42,7 @@ interface DashboardProps {
   onDeleteRecord: (id: string) => void;
   onDuplicateRecord: (id: string) => void;
   onPrintRecord: (record: DemoRecord) => void;
+  onOpenMcp?: () => void;
   onRecordsSynced?: (records: DemoRecord[]) => void;
 }
 
@@ -50,6 +56,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onDeleteRecord,
   onDuplicateRecord,
   onPrintRecord,
+  onOpenMcp,
   onRecordsSynced
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -204,54 +211,55 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </span>
       </div>
 
-      {/* Metric Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Total Drafts */}
-        <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-2xs flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Drafts</p>
-            <h3 className="text-2xl font-bold text-slate-900 mt-1">{metrics.total}</h3>
-            <p className="text-[11px] text-slate-500 font-['Noto_Sans_Bengali'] mt-0.5">সর্বমোট সংরক্ষিত রেকর্ড</p>
+      {/* Monthly Analytics Summary Cards & Visual Data Chart Section */}
+      <MonthlyAnalyticsChart
+        records={records}
+        onFilterStatus={(status) => {
+          setStatusFilter(status);
+          // Scroll smoothly to table if needed
+          const tableElement = document.getElementById('recent-records-section');
+          if (tableElement) {
+            tableElement.scrollIntoView({ behavior: 'smooth' });
+          }
+        }}
+      />
+
+      {/* Master Control Panel (MCP) & Automation Fast-Track Banner */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 text-white rounded-xl p-4 sm:p-5 border border-slate-700 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-start sm:items-center gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center shrink-0">
+            <Cpu className="w-6 h-6" />
           </div>
-          <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200">
-            <FileText className="w-5 h-5" />
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 font-mono">
+                AUTOMATION CORE V2.0
+              </span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="text-[10px] text-slate-300 font-mono hidden sm:inline">
+                Google Apps Script &bull; Gemini AI &bull; 6-Folder Ontology
+              </span>
+            </div>
+            <h3 className="text-sm sm:text-base font-bold text-white font-['Noto_Sans_Bengali'] mt-0.5">
+              মাস্টার কন্ট্রোল প্যানেল: ২৪-ট্যাগ অটো-ম্যাপিং ও ৬-ধাপ লাইভ পাইপলাইন সিমুলেটর
+            </h3>
+            <p className="text-xs text-slate-300 mt-0.5">
+              গুগল ফর্ম সাবমিশন থেকে ড্রাইভ ফোল্ডার ও লকড পিডিএফ আর্কাইভাল টেস্ট করুন (&lt; 3.0s SLA)।
+            </p>
           </div>
         </div>
 
-        {/* Card 2: Today's Entries */}
-        <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-2xs flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Today&apos;s Entries</p>
-            <h3 className="text-2xl font-bold text-emerald-800 mt-1">{metrics.todayEntries}</h3>
-            <p className="text-[11px] text-slate-500 font-['Noto_Sans_Bengali'] mt-0.5">আজকের প্রস্তুতকৃত এন্ট্রি</p>
-          </div>
-          <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center border border-blue-200">
-            <Clock className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* Card 3: Pending Review */}
-        <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-2xs flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pending Review</p>
-            <h3 className="text-2xl font-bold text-amber-700 mt-1">{metrics.pending}</h3>
-            <p className="text-[11px] text-slate-500 font-['Noto_Sans_Bengali'] mt-0.5">পর্যালোচনাধীন রেকর্ড</p>
-          </div>
-          <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-200">
-            <AlertCircle className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* Card 4: Recently Updated */}
-        <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-2xs flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Recently Updated</p>
-            <h3 className="text-2xl font-bold text-slate-900 mt-1">{metrics.recentlyUpdated}</h3>
-            <p className="text-[11px] text-slate-500 font-['Noto_Sans_Bengali'] mt-0.5">সম্প্রতি হালনাগাদকৃত</p>
-          </div>
-          <div className="w-10 h-10 rounded-full bg-purple-50 text-purple-700 flex items-center justify-center border border-purple-200">
-            <FileCheck className="w-5 h-5" />
-          </div>
+        <div className="flex items-center gap-2.5 shrink-0">
+          {onOpenMcp && (
+            <button
+              onClick={onOpenMcp}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-lg transition shadow-md cursor-pointer active:scale-95"
+            >
+              <Cpu className="w-4 h-4" />
+              <span>MCP ড্যাশবোর্ড খুলুন</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -282,7 +290,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       {/* Main Table Container */}
-      <div className="bg-white rounded-lg border border-slate-200 shadow-2xs overflow-hidden">
+      <div id="recent-records-section" className="bg-white rounded-lg border border-slate-200 shadow-2xs overflow-hidden">
         
         {/* Table Header Controls */}
         <div className="p-4 sm:p-5 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">

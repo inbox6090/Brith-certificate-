@@ -53,6 +53,10 @@ export const DemoBarcode: React.FC<DemoBarcodeProps> = ({
         </svg>
       </div>
 
+      <span className="text-[7.5px] font-mono font-bold text-slate-500 uppercase tracking-tight mt-0.5">
+        DEMO BARCODE • NOT VALID
+      </span>
+
       {showText && (
         <span className="text-[9px] font-mono tracking-wider text-slate-800 font-semibold mt-0.5">
           {effectiveRef}

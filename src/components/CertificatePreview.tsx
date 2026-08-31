@@ -5,6 +5,7 @@ import { DemoQRCode } from './DemoQRCode';
 import { DemoBarcode } from './DemoBarcode';
 import { LogoWatermarkController } from './LogoWatermarkController';
 import { CertifiedCopyOverlay, CertifiedCopyController } from './CertifiedCopyOverlay';
+import { CertificateConfigPanel } from './CertificateConfigPanel';
 import { ValidationGuardModal } from './ValidationGuardModal';
 import { SignaturePadModal } from './SignaturePadModal';
 import { 
@@ -81,6 +82,7 @@ export const CertificatePreview: React.FC<CertificatePreviewProps> = ({
   const [showLogoSettings, setShowLogoSettings] = useState(false);
   const [showQrSettings, setShowQrSettings] = useState(false);
   const [showCertifiedOverlaySettings, setShowCertifiedOverlaySettings] = useState(false);
+  const [showConfigPanel, setShowConfigPanel] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isExportingImage, setIsExportingImage] = useState(false);
   const [isSavingDrive, setIsSavingDrive] = useState(false);
@@ -233,9 +235,29 @@ export const CertificatePreview: React.FC<CertificatePreviewProps> = ({
             {onUpdateRecord && (
               <>
                 <button
+                  id="btn-toggle-config-panel"
+                  onClick={() => {
+                    setShowConfigPanel(!showConfigPanel);
+                    if (showQrSettings) setShowQrSettings(false);
+                    if (showLogoSettings) setShowLogoSettings(false);
+                    if (showCertifiedOverlaySettings) setShowCertifiedOverlaySettings(false);
+                  }}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded transition cursor-pointer border ${
+                    showConfigPanel
+                      ? 'bg-amber-400 text-amber-950 border-amber-300 font-bold shadow-xs'
+                      : 'bg-emerald-700 text-white border-emerald-500 hover:bg-emerald-600'
+                  }`}
+                  title="প্রিন্ট বা ডাউনলোডের পূর্বে সেকশন লুকানো/দেখানো এবং বর্ডার স্টাইল কনফিগারেশন"
+                >
+                  <Sliders className="w-3.5 h-3.5" />
+                  <span>{showConfigPanel ? 'কনফিগ লুকান' : 'প্রিন্ট ও লেআউট কনফিগ'}</span>
+                </button>
+
+                <button
                   id="btn-toggle-qr-settings"
                   onClick={() => {
                     setShowQrSettings(!showQrSettings);
+                    if (showConfigPanel) setShowConfigPanel(false);
                     if (showLogoSettings) setShowLogoSettings(false);
                     if (showCertifiedOverlaySettings) setShowCertifiedOverlaySettings(false);
                   }}
@@ -254,6 +276,7 @@ export const CertificatePreview: React.FC<CertificatePreviewProps> = ({
                   id="btn-toggle-logo-settings"
                   onClick={() => {
                     setShowLogoSettings(!showLogoSettings);
+                    if (showConfigPanel) setShowConfigPanel(false);
                     if (showQrSettings) setShowQrSettings(false);
                     if (showCertifiedOverlaySettings) setShowCertifiedOverlaySettings(false);
                   }}
@@ -272,6 +295,7 @@ export const CertificatePreview: React.FC<CertificatePreviewProps> = ({
                   id="btn-toggle-certified-overlay"
                   onClick={() => {
                     setShowCertifiedOverlaySettings(!showCertifiedOverlaySettings);
+                    if (showConfigPanel) setShowConfigPanel(false);
                     if (showQrSettings) setShowQrSettings(false);
                     if (showLogoSettings) setShowLogoSettings(false);
                   }}
@@ -546,11 +570,35 @@ export const CertificatePreview: React.FC<CertificatePreviewProps> = ({
         </div>
       )}
 
+      {/* Expandable Certificate Configuration & Section Visibility Panel */}
+      {showConfigPanel && onUpdateRecord && !isCompact && (
+        <div className="w-full max-w-[800px] print:hidden">
+          <CertificateConfigPanel
+            record={record}
+            onUpdateRecord={onUpdateRecord}
+            onClose={() => setShowConfigPanel(false)}
+            onPrint={handlePrintTrigger}
+          />
+        </div>
+      )}
+
       {/* Main Certificate Sheet (Strict A4 Dimensions 210mm x 297mm matching PDF screenshot exactly) */}
       <div 
         id="certificate-print-sheet"
         ref={printRef}
-        className="certificate-a4-sheet bg-white text-slate-900 shadow-2xl border border-slate-300 relative flex flex-col justify-between overflow-hidden print:shadow-none print:border-none print:m-0"
+        className={`certificate-a4-sheet bg-white text-slate-900 shadow-2xl relative flex flex-col justify-between overflow-hidden print:shadow-none print:border-none print:m-0 ${
+          record.certificateBorderStyle === 'none'
+            ? 'border-0 shadow-none'
+            : record.certificateBorderStyle === 'double'
+            ? 'border-4 border-double'
+            : record.certificateBorderStyle === 'security_green'
+            ? 'border-2 ring-2 ring-offset-2 ring-emerald-800/80'
+            : record.certificateBorderStyle === 'classic'
+            ? 'border-[3.5px]'
+            : record.certificateBorderStyle === 'ornamental'
+            ? 'border-2 outline outline-1 outline-offset-3'
+            : 'border border-slate-300'
+        }`}
         style={{
           fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
           width: '210mm',
@@ -559,7 +607,9 @@ export const CertificatePreview: React.FC<CertificatePreviewProps> = ({
           maxHeight: '297mm',
           maxWidth: '210mm',
           padding: '18mm 18mm 14mm 18mm',
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
+          borderColor: record.certificateBorderStyle !== 'none' ? (record.certificateBorderColor || (record.certificateBorderStyle === 'security_green' ? '#065f46' : '#334155')) : 'transparent',
+          outlineColor: record.certificateBorderColor || '#334155'
         }}
       >
         {/* Background Decorative Watermark (Baby Silhouette + Circular Seal matching BDRIS) */}
@@ -569,6 +619,18 @@ export const CertificatePreview: React.FC<CertificatePreviewProps> = ({
           visible={record.watermarkVisible ?? true}
           customUrl={record.watermarkUrl}
         />
+
+        {/* Mandatory Permanent Diagonal Safety Watermark (Un-removable, persistent in Preview/Print/PDF) */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden">
+          <div className="transform -rotate-[32deg] text-center pointer-events-none select-none opacity-[0.14] scale-105">
+            <div className="text-[64px] font-black font-mono tracking-[0.25em] text-slate-800 uppercase leading-none select-none">
+              DEMO
+            </div>
+            <div className="text-[28px] font-black font-mono tracking-[0.2em] text-slate-800 uppercase mt-2.5 whitespace-nowrap select-none">
+              NOT A GOVERNMENT DOCUMENT
+            </div>
+          </div>
+        </div>
 
         {/* Draft / Certified Copy Visual Overlays & Red Seals */}
         <CertifiedCopyOverlay record={record} />
@@ -584,188 +646,224 @@ export const CertificatePreview: React.FC<CertificatePreviewProps> = ({
               
               {/* Left QR Code with manual word underneath */}
               <div className="col-span-3 flex flex-col items-start justify-start">
-                <DemoQRCode 
-                  size={isCompact ? 72 : 82} 
-                  referenceText={record.qrReferenceCode || "EETT"} 
-                  record={record} 
-                  isInlineEditing={isInlineEditing}
-                  onReferenceTextChange={(txt) => handleFieldChange('qrReferenceCode', txt)}
-                  onVerificationUrlChange={(url) => handleFieldChange('qrVerificationUrl', url)}
-                />
+                {record.qrCodeVisible !== false ? (
+                  <DemoQRCode 
+                    size={isCompact ? 72 : 82} 
+                    referenceText={record.qrReferenceCode || "EETT"} 
+                    record={record} 
+                    isInlineEditing={isInlineEditing}
+                    onReferenceTextChange={(txt) => handleFieldChange('qrReferenceCode', txt)}
+                    onVerificationUrlChange={(url) => handleFieldChange('qrVerificationUrl', url)}
+                  />
+                ) : (
+                  <div className="min-h-[82px] flex items-center text-[10px] text-slate-300 print:hidden italic">
+                    [QR কোড লুকানো]
+                  </div>
+                )}
               </div>
 
               {/* Center Emblem */}
               <div className="col-span-6 flex flex-col items-center justify-center text-center pt-0.5">
-                <div 
-                  className="cursor-pointer"
-                  title="লোগো সাইজ ও দৃশ্যমানতা বদলাতে ক্লিক করুন"
-                  onClick={() => onUpdateRecord && setShowLogoSettings(true)}
-                >
-                  <DemoTopEmblem 
-                    size={record.topLogoSize ?? 58} 
-                    opacity={record.topLogoOpacity ?? 100}
-                    visible={record.topLogoVisible ?? true}
-                    customUrl={record.topLogoUrl}
-                    className="drop-shadow-2xs" 
-                  />
-                </div>
+                {record.topLogoVisible !== false ? (
+                  <div 
+                    className="cursor-pointer"
+                    title="লোগো সাইজ ও দৃশ্যমানতা বদলাতে ক্লিক করুন"
+                    onClick={() => onUpdateRecord && setShowLogoSettings(true)}
+                  >
+                    <DemoTopEmblem 
+                      size={record.topLogoSize ?? 58} 
+                      opacity={record.topLogoOpacity ?? 100}
+                      visible={record.topLogoVisible ?? true}
+                      customUrl={record.topLogoUrl}
+                      className="drop-shadow-2xs" 
+                    />
+                  </div>
+                ) : (
+                  <div className="min-h-[58px] flex items-center justify-center text-[10px] text-slate-300 print:hidden italic">
+                    [লোগো লুকানো]
+                  </div>
+                )}
               </div>
 
               {/* Right Barcode (Official Code 128 dynamic vector barcode reflecting Reference ID) */}
-              <div 
-                className="col-span-3 flex justify-end pt-1.5 cursor-pointer"
-                title="বারকোড সেটিং পরিবর্তন করতে ক্লিক করুন"
-                onClick={() => onUpdateRecord && setShowQrSettings(true)}
-              >
-                <DemoBarcode 
-                  referenceNumber={record.barcodeValue || record.referenceId || "19879318513121621"} 
-                  height={record.barcodeHeight || 32}
-                  showText={record.barcodeShowText || false}
-                  isInlineEditing={isInlineEditing}
-                  onBarcodeChange={(val) => handleFieldChange('barcodeValue', val)}
-                />
+              <div className="col-span-3 flex justify-end pt-1.5">
+                {record.barcodeVisible !== false ? (
+                  <div 
+                    className="cursor-pointer"
+                    title="বারকোড সেটিং পরিবর্তন করতে ক্লিক করুন"
+                    onClick={() => onUpdateRecord && setShowQrSettings(true)}
+                  >
+                    <DemoBarcode 
+                      referenceNumber={record.barcodeValue || record.referenceId || "19879318513121621"} 
+                      height={record.barcodeHeight || 32}
+                      showText={record.barcodeShowText || false}
+                      isInlineEditing={isInlineEditing}
+                      onBarcodeChange={(val) => handleFieldChange('barcodeValue', val)}
+                    />
+                  </div>
+                ) : (
+                  <div className="min-h-[32px] flex items-center text-[10px] text-slate-300 print:hidden italic">
+                    [বারকোড লুকানো]
+                  </div>
+                )}
               </div>
 
             </div>
 
 
             {/* Office & Government Title Details (Centered) */}
-            <div className="flex flex-col items-center text-center space-y-0.5 text-slate-900 mt-1">
-              
-              <h1 className="text-[15.5px] font-normal text-slate-900 tracking-normal font-sans">
-                {isInlineEditing ? (
-                  <input
-                    type="text"
-                    value="Government of the People's Republic of Bangladesh"
-                    readOnly
-                    className="text-center font-normal bg-amber-50/80 border border-amber-300 rounded px-1 text-sm"
-                  />
-                ) : (
-                  "Government of the People's Republic of Bangladesh"
-                )}
-              </h1>
-              
-              <div className="text-[13px] text-slate-850 font-normal">
-                {isInlineEditing ? (
-                  <input
-                    type="text"
-                    value={record.officeNameEn}
-                    onChange={(e) => handleFieldChange('officeNameEn', e.target.value)}
-                    className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-xs"
-                  />
-                ) : (
-                  record.officeNameEn || "Office of the Registrar, Birth and Death Registration"
-                )}
-              </div>
-              
-              <div className="text-[13px] text-slate-850 font-normal tracking-wide">
-                {isInlineEditing ? (
-                  <input
-                    type="text"
-                    value={record.unionParishadEn || FIXED_UNION_PARISHAD_EN}
-                    onChange={(e) => handleFieldChange('unionParishadEn', e.target.value)}
-                    className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-xs font-medium"
-                  />
-                ) : (
-                  record.unionParishadEn || "Baheratail Union Parishad"
-                )}
-              </div>
-              
-              <div className="text-[13px] text-slate-850 font-normal tracking-wide">
-                {isInlineEditing ? (
-                  <div className="flex items-center justify-center gap-1">
+            {record.headerTitlesVisible !== false && (
+              <div className="flex flex-col items-center text-center space-y-0.5 text-slate-900 mt-1">
+                
+                <h1 className="text-[15.5px] font-normal text-slate-900 tracking-normal font-sans">
+                  {isInlineEditing ? (
                     <input
                       type="text"
-                      value={record.upazilaEn || "Sakhipur"}
-                      onChange={(e) => handleFieldChange('upazilaEn', e.target.value)}
-                      className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-24"
+                      value="Government of the People's Republic of Bangladesh"
+                      readOnly
+                      className="text-center font-normal bg-amber-50/80 border border-amber-300 rounded px-1 text-sm"
                     />
-                    <span>,</span>
+                  ) : (
+                    "Government of the People's Republic of Bangladesh"
+                  )}
+                </h1>
+                
+                <div className="text-[13px] text-slate-850 font-normal">
+                  {isInlineEditing ? (
                     <input
                       type="text"
-                      value={record.districtEn || "Tangail"}
-                      onChange={(e) => handleFieldChange('districtEn', e.target.value)}
-                      className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-24"
+                      value={record.officeNameEn}
+                      onChange={(e) => handleFieldChange('officeNameEn', e.target.value)}
+                      className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-xs"
                     />
-                  </div>
-                ) : (
-                  `${record.upazilaEn || "Sakhipur"}, ${record.districtEn || "Tangail"}`
-                )}
+                  ) : (
+                    record.officeNameEn || "Office of the Registrar, Birth and Death Registration"
+                  )}
+                </div>
+                
+                <div className="text-[13px] text-slate-850 font-normal tracking-wide">
+                  {isInlineEditing ? (
+                    <input
+                      type="text"
+                      value={record.unionParishadEn || FIXED_UNION_PARISHAD_EN}
+                      onChange={(e) => handleFieldChange('unionParishadEn', e.target.value)}
+                      className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-xs font-medium"
+                    />
+                  ) : (
+                    record.unionParishadEn || "Baheratail Union Parishad"
+                  )}
+                </div>
+                
+                <div className="text-[13px] text-slate-850 font-normal tracking-wide">
+                  {isInlineEditing ? (
+                    <div className="flex items-center justify-center gap-1">
+                      <input
+                        type="text"
+                        value={record.upazilaEn || "Sakhipur"}
+                        onChange={(e) => handleFieldChange('upazilaEn', e.target.value)}
+                        className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-24"
+                      />
+                      <span>,</span>
+                      <input
+                        type="text"
+                        value={record.districtEn || "Tangail"}
+                        onChange={(e) => handleFieldChange('districtEn', e.target.value)}
+                        className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-24"
+                      />
+                    </div>
+                  ) : (
+                    `${record.upazilaEn || "Sakhipur"}, ${record.districtEn || "Tangail"}`
+                  )}
+                </div>
+                
+                <div className="text-[11.5px] text-slate-700 font-sans font-normal">
+                  {isInlineEditing ? (
+                    <input
+                      type="text"
+                      value={record.ruleText}
+                      onChange={(e) => handleFieldChange('ruleText', e.target.value)}
+                      className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-[11px] w-28"
+                    />
+                  ) : (
+                    record.ruleText || "(Rule 9, 10)"
+                  )}
+                </div>
               </div>
-              
-              <div className="text-[11.5px] text-slate-700 font-sans font-normal">
-                {isInlineEditing ? (
-                  <input
-                    type="text"
-                    value={record.ruleText}
-                    onChange={(e) => handleFieldChange('ruleText', e.target.value)}
-                    className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-[11px] w-28"
-                  />
-                ) : (
-                  record.ruleText || "(Rule 9, 10)"
-                )}
-              </div>
+            )}
 
-              {/* Main Title (Exact font weight & size matching screenshot) */}
-              <div className="pt-3 pb-3.5">
+            {/* Main Title (Exact font weight & size matching screenshot) */}
+            {record.certificateTitleVisible !== false && (
+              <div className="text-center pt-3 pb-3.5">
                 <h2 className="text-[16px] font-bold text-slate-950 font-['Noto_Sans_Bengali',sans-serif]">
                   জন্ম নিবন্ধন সনদ / Birth Registration Certificate
                 </h2>
               </div>
-            </div>
+            )}
 
             {/* Registration Dates & 17-digit BRN Number Row */}
             <div className="grid grid-cols-12 items-baseline text-[12.5px] font-sans pb-3 mb-2">
               
               {/* Left: Date of Registration */}
               <div className="col-span-4 text-left">
-                <div className="text-slate-800 font-normal">Date of Registration</div>
-                <div className="font-normal text-slate-950 mt-0.5 text-[13px]">
-                  {isInlineEditing ? (
-                    <input
-                      type="text"
-                      value={record.dateOfRegistration}
-                      onChange={(e) => handleFieldChange('dateOfRegistration', e.target.value)}
-                      className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-24 font-normal"
-                    />
-                  ) : (
-                    formattedRegDate
-                  )}
-                </div>
+                {record.registrationDatesVisible !== false && (
+                  <>
+                    <div className="text-slate-800 font-normal">Date of Registration</div>
+                    <div className="font-normal text-slate-950 mt-0.5 text-[13px]">
+                      {isInlineEditing ? (
+                        <input
+                          type="text"
+                          value={record.dateOfRegistration}
+                          onChange={(e) => handleFieldChange('dateOfRegistration', e.target.value)}
+                          className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-24 font-normal"
+                        />
+                      ) : (
+                        formattedRegDate
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Center: Birth Registration Number (17 Digits) */}
               <div className="col-span-4 text-center">
-                <div className="text-slate-800 font-normal">Birth Registration Number</div>
-                <div className="font-bold text-slate-950 text-[15px] mt-0.5 tracking-normal font-sans">
-                  {isInlineEditing ? (
-                    <input
-                      type="text"
-                      value={record.referenceId}
-                      onChange={(e) => handleFieldChange('referenceId', e.target.value)}
-                      className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-xs font-bold w-44"
-                    />
-                  ) : (
-                    record.referenceId || "19879318513121621"
-                  )}
-                </div>
+                {record.registrationNumberVisible !== false && (
+                  <>
+                    <div className="text-slate-800 font-normal">Birth Registration Number</div>
+                    <div className="font-bold text-slate-950 text-[15px] mt-0.5 tracking-normal font-sans">
+                      {isInlineEditing ? (
+                        <input
+                          type="text"
+                          value={record.referenceId}
+                          onChange={(e) => handleFieldChange('referenceId', e.target.value)}
+                          className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-xs font-bold w-44"
+                        />
+                      ) : (
+                        record.referenceId || "19879318513121621"
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Right: Date of Issuance */}
               <div className="col-span-4 text-right">
-                <div className="text-slate-800 font-normal">Date of Issuance</div>
-                <div className="font-normal text-slate-950 mt-0.5 text-[13px]">
-                  {isInlineEditing ? (
-                    <input
-                      type="text"
-                      value={record.dateOfIssuance}
-                      onChange={(e) => handleFieldChange('dateOfIssuance', e.target.value)}
-                      className="text-right bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-24 font-normal"
-                    />
-                  ) : (
-                    formattedIssueDate
-                  )}
-                </div>
+                {record.registrationDatesVisible !== false && (
+                  <>
+                    <div className="text-slate-800 font-normal">Date of Issuance</div>
+                    <div className="font-normal text-slate-950 mt-0.5 text-[13px]">
+                      {isInlineEditing ? (
+                        <input
+                          type="text"
+                          value={record.dateOfIssuance}
+                          onChange={(e) => handleFieldChange('dateOfIssuance', e.target.value)}
+                          className="text-right bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-24 font-normal"
+                        />
+                      ) : (
+                        formattedIssueDate
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
 
             </div>
@@ -773,365 +871,380 @@ export const CertificatePreview: React.FC<CertificatePreviewProps> = ({
             {/* Main Certificate Data Section (Exact 2-Column Tabular Alignment & Precise Line-Spacing) */}
             <div className="space-y-3 text-[13px] text-slate-900 leading-normal font-sans pt-1">
               
-              {/* Row 1: Date of Birth & Sex */}
-              <div className="grid grid-cols-12 gap-3 items-baseline">
-                <div className="col-span-7 flex items-baseline">
-                  <span className="w-[110px] text-slate-850 shrink-0 font-normal">Date of Birth</span>
-                  <span className="w-4 text-slate-850">:</span>
-                  <span className="font-normal text-slate-950">
-                    {isInlineEditing ? (
-                      <input
-                        type="text"
-                        value={record.dateOfBirth}
-                        onChange={(e) => handleFieldChange('dateOfBirth', e.target.value)}
-                        placeholder="DD/MM/YYYY"
-                        className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-28"
-                      />
-                    ) : (
-                      formattedDob
-                    )}
-                  </span>
-                </div>
-                <div className="col-span-5 flex items-baseline">
-                  <span className="w-[50px] text-slate-850 shrink-0 font-normal">Sex</span>
-                  <span className="w-4 text-slate-850">:</span>
-                  <span className="font-normal text-slate-950">
-                    {isInlineEditing ? (
-                      <select
-                        value={record.sex}
-                        onChange={(e) => {
-                          const val = e.target.value as 'Male' | 'Female' | 'Other';
-                          const bn = val === 'Male' ? 'পুরুষ' : val === 'Female' ? 'মহিলা' : 'অন্যান্য';
-                          if (onUpdateRecord) {
-                            onUpdateRecord({ ...record, sex: val, sexBn: bn });
-                          }
-                        }}
-                        className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs"
-                      >
-                        <option value="Female">Female</option>
-                        <option value="Male">Male</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    ) : (
-                      record.sex || "Female"
-                    )}
-                  </span>
-                </div>
-              </div>
-
-              {/* Row 2: In Word (Full width) */}
-              <div className="flex items-baseline">
-                <span className="w-[110px] text-slate-850 shrink-0 font-normal">In Word</span>
-                <span className="w-4 text-slate-850">:</span>
-                <span className="font-normal text-slate-950">
-                  {isInlineEditing ? (
-                    <input
-                      type="text"
-                      value={record.dateOfBirthWordsEn}
-                      onChange={(e) => handleFieldChange('dateOfBirthWordsEn', e.target.value)}
-                      className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-full max-w-md"
-                    />
-                  ) : (
-                    record.dateOfBirthWordsEn || "Fifth of September Nineteen Eighty Seven"
-                  )}
-                </span>
-              </div>
-
-              {/* Row 3: নাম (Bangla) & Name (English) */}
-              <div className="grid grid-cols-12 gap-3 items-baseline pt-0.5">
-                <div className="col-span-6 flex items-baseline">
-                  <span className="w-[110px] text-slate-850 shrink-0 font-['Noto_Sans_Bengali']">নাম</span>
-                  <span className="w-4 text-slate-850">:</span>
-                  <span className="font-normal text-slate-950 font-['Noto_Sans_Bengali']">
-                    {isInlineEditing ? (
-                      <input
-                        type="text"
-                        value={record.nameBn}
-                        onChange={(e) => handleFieldChange('nameBn', e.target.value)}
-                        className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs font-['Noto_Sans_Bengali'] w-40"
-                      />
-                    ) : (
-                      record.nameBn || "সাজেদা আক্তার"
-                    )}
-                  </span>
-                </div>
-                <div className="col-span-6 flex items-baseline">
-                  <span className="w-[105px] text-slate-850 shrink-0 font-normal">Name</span>
-                  <span className="w-4 text-slate-850">:</span>
-                  <span className="font-normal text-slate-950">
-                    {isInlineEditing ? (
-                      <input
-                        type="text"
-                        value={record.nameEn}
-                        onChange={(e) => handleFieldChange('nameEn', e.target.value)}
-                        className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-40"
-                      />
-                    ) : (
-                      record.nameEn || "Shajeda Akter"
-                    )}
-                  </span>
-                </div>
-              </div>
-
-              {/* Row 4: মাতা (Bangla) & Mother (English) */}
-              <div className="grid grid-cols-12 gap-3 items-baseline">
-                <div className="col-span-6 flex items-baseline">
-                  <span className="w-[110px] text-slate-850 shrink-0 font-['Noto_Sans_Bengali']">মাতা</span>
-                  <span className="w-4 text-slate-850">:</span>
-                  <span className="font-normal text-slate-950 font-['Noto_Sans_Bengali']">
-                    {isInlineEditing ? (
-                      <input
-                        type="text"
-                        value={record.motherNameBn}
-                        onChange={(e) => handleFieldChange('motherNameBn', e.target.value)}
-                        className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs font-['Noto_Sans_Bengali'] w-40"
-                      />
-                    ) : (
-                      record.motherNameBn || "জাহানারা বেগম"
-                    )}
-                  </span>
-                </div>
-                <div className="col-span-6 flex items-baseline">
-                  <span className="w-[105px] text-slate-850 shrink-0 font-normal">Mother</span>
-                  <span className="w-4 text-slate-850">:</span>
-                  <span className="font-normal text-slate-950">
-                    {isInlineEditing ? (
-                      <input
-                        type="text"
-                        value={record.motherNameEn}
-                        onChange={(e) => handleFieldChange('motherNameEn', e.target.value)}
-                        className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-40"
-                      />
-                    ) : (
-                      record.motherNameEn || "Jahanara Begum"
-                    )}
-                  </span>
-                </div>
-              </div>
-
-              {/* Row 5: মাতার জাতীয়তা (Bangla) & Nationality (English) */}
-              <div className="grid grid-cols-12 gap-3 items-baseline">
-                <div className="col-span-6 flex items-baseline">
-                  <span className="w-[110px] text-slate-850 shrink-0 font-['Noto_Sans_Bengali']">মাতার জাতীয়তা</span>
-                  <span className="w-4 text-slate-850">:</span>
-                  <span className="font-normal text-slate-950 font-['Noto_Sans_Bengali']">
-                    {isInlineEditing ? (
-                      <input
-                        type="text"
-                        value={record.motherNationalityBn}
-                        onChange={(e) => handleFieldChange('motherNationalityBn', e.target.value)}
-                        className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs font-['Noto_Sans_Bengali'] w-32"
-                      />
-                    ) : (
-                      record.motherNationalityBn || "বাংলাদেশী"
-                    )}
-                  </span>
-                </div>
-                <div className="col-span-6 flex items-baseline">
-                  <span className="w-[105px] text-slate-850 shrink-0 font-normal">Nationality</span>
-                  <span className="w-4 text-slate-850">:</span>
-                  <span className="font-normal text-slate-950">
-                    {isInlineEditing ? (
-                      <input
-                        type="text"
-                        value={record.motherNationalityEn}
-                        onChange={(e) => handleFieldChange('motherNationalityEn', e.target.value)}
-                        className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-32"
-                      />
-                    ) : (
-                      record.motherNationalityEn || "Bangladeshi"
-                    )}
-                  </span>
-                </div>
-              </div>
-
-              {/* Row 6: পিতা (Bangla) & Father (English) */}
-              <div className="grid grid-cols-12 gap-3 items-baseline">
-                <div className="col-span-6 flex items-baseline">
-                  <span className="w-[110px] text-slate-850 shrink-0 font-['Noto_Sans_Bengali']">পিতা</span>
-                  <span className="w-4 text-slate-850">:</span>
-                  <span className="font-normal text-slate-950 font-['Noto_Sans_Bengali']">
-                    {isInlineEditing ? (
-                      <input
-                        type="text"
-                        value={record.fatherNameBn}
-                        onChange={(e) => handleFieldChange('fatherNameBn', e.target.value)}
-                        className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs font-['Noto_Sans_Bengali'] w-40"
-                      />
-                    ) : (
-                      record.fatherNameBn || "মোঃ শাহজাহান"
-                    )}
-                  </span>
-                </div>
-                <div className="col-span-6 flex items-baseline">
-                  <span className="w-[105px] text-slate-850 shrink-0 font-normal">Father</span>
-                  <span className="w-4 text-slate-850">:</span>
-                  <span className="font-normal text-slate-950">
-                    {isInlineEditing ? (
-                      <input
-                        type="text"
-                        value={record.fatherNameEn}
-                        onChange={(e) => handleFieldChange('fatherNameEn', e.target.value)}
-                        className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-40"
-                      />
-                    ) : (
-                      record.fatherNameEn || "Md Shahjahan"
-                    )}
-                  </span>
-                </div>
-              </div>
-
-              {/* Row 7: পিতার জাতীয়তা (Bangla) & Nationality (English) */}
-              <div className="grid grid-cols-12 gap-3 items-baseline">
-                <div className="col-span-6 flex items-baseline">
-                  <span className="w-[110px] text-slate-850 shrink-0 font-['Noto_Sans_Bengali']">পিতার জাতীয়তা</span>
-                  <span className="w-4 text-slate-850">:</span>
-                  <span className="font-normal text-slate-950 font-['Noto_Sans_Bengali']">
-                    {isInlineEditing ? (
-                      <input
-                        type="text"
-                        value={record.fatherNationalityBn}
-                        onChange={(e) => handleFieldChange('fatherNationalityBn', e.target.value)}
-                        className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs font-['Noto_Sans_Bengali'] w-32"
-                      />
-                    ) : (
-                      record.fatherNationalityBn || "বাংলাদেশী"
-                    )}
-                  </span>
-                </div>
-                <div className="col-span-6 flex items-baseline">
-                  <span className="w-[105px] text-slate-850 shrink-0 font-normal">Nationality</span>
-                  <span className="w-4 text-slate-850">:</span>
-                  <span className="font-normal text-slate-950">
-                    {isInlineEditing ? (
-                      <input
-                        type="text"
-                        value={record.fatherNationalityEn}
-                        onChange={(e) => handleFieldChange('fatherNationalityEn', e.target.value)}
-                        className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-32"
-                      />
-                    ) : (
-                      record.fatherNationalityEn || "Bangladeshi"
-                    )}
-                  </span>
-                </div>
-              </div>
-
-              {/* Row 8: জন্মস্থান (Bangla) & Place of Birth (English) */}
-              <div className="grid grid-cols-12 gap-3 items-baseline">
-                <div className="col-span-6 flex items-baseline">
-                  <span className="w-[110px] text-slate-850 shrink-0 font-['Noto_Sans_Bengali']">জন্মস্থান</span>
-                  <span className="w-4 text-slate-850">:</span>
-                  <span className="font-normal text-slate-950 font-['Noto_Sans_Bengali']">
-                    {isInlineEditing ? (
-                      <input
-                        type="text"
-                        value={record.placeOfBirthBn}
-                        onChange={(e) => handleFieldChange('placeOfBirthBn', e.target.value)}
-                        className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs font-['Noto_Sans_Bengali'] w-40"
-                      />
-                    ) : (
-                      record.placeOfBirthBn || "টাঙ্গাইল, বাংলাদেশ"
-                    )}
-                  </span>
-                </div>
-                <div className="col-span-6 flex items-baseline">
-                  <span className="w-[105px] text-slate-850 shrink-0 font-normal">Place of Birth</span>
-                  <span className="w-4 text-slate-850">:</span>
-                  <span className="font-normal text-slate-950">
-                    {isInlineEditing ? (
-                      <input
-                        type="text"
-                        value={record.placeOfBirthEn}
-                        onChange={(e) => handleFieldChange('placeOfBirthEn', e.target.value)}
-                        className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-40"
-                      />
-                    ) : (
-                      record.placeOfBirthEn || "Tangail, Bangladesh"
-                    )}
-                  </span>
-                </div>
-              </div>
-
-              {/* Row 9: স্থায়ী ঠিকানা (Bangla) & Permanent Address (English) */}
-              <div className="grid grid-cols-12 gap-3 items-start pt-0.5">
-                <div className="col-span-6 flex items-start">
-                  <span className="w-[110px] text-slate-850 shrink-0 font-['Noto_Sans_Bengali'] pt-0.5">স্থায়ী ঠিকানা</span>
-                  <span className="w-4 pt-0.5 text-slate-850">:</span>
-                  <span className="font-normal text-slate-950 font-['Noto_Sans_Bengali'] leading-relaxed">
-                    {isInlineEditing ? (
-                      <textarea
-                        rows={2}
-                        value={record.permanentAddressBn}
-                        onChange={(e) => handleFieldChange('permanentAddressBn', e.target.value)}
-                        className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs font-['Noto_Sans_Bengali'] w-full"
-                      />
-                    ) : (
-                      <div className="space-y-0.5">
-                        {record.permanentAddressBn ? (
-                          record.permanentAddressBn.includes('\n') ? (
-                            record.permanentAddressBn.split('\n').map((line, idx) => (
-                              <div key={idx}>{line}</div>
-                            ))
-                          ) : record.permanentAddressBn.includes('ওয়ার্ড') ? (
-                            <>
-                              <div>{record.permanentAddressBn.split(',')[0]}, {record.permanentAddressBn.split(',')[1]},</div>
-                              <div>{record.permanentAddressBn.split(',').slice(2).join(',').trim()}</div>
-                            </>
-                          ) : (
-                            <div>{record.permanentAddressBn}</div>
-                          )
+              {/* Citizen Information Rows */}
+              {record.citizenInfoVisible !== false && (
+                <>
+                  {/* Row 1: Date of Birth & Sex */}
+                  <div className="grid grid-cols-12 gap-3 items-baseline">
+                    <div className="col-span-7 flex items-baseline">
+                      <span className="w-[110px] text-slate-850 shrink-0 font-normal">Date of Birth</span>
+                      <span className="w-4 text-slate-850">:</span>
+                      <span className="font-normal text-slate-950">
+                        {isInlineEditing ? (
+                          <input
+                            type="text"
+                            value={record.dateOfBirth}
+                            onChange={(e) => handleFieldChange('dateOfBirth', e.target.value)}
+                            placeholder="DD/MM/YYYY"
+                            className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-28"
+                          />
                         ) : (
-                          <>
-                            <div>দাবাইল নাগবাড়ী-১৯৭২, ওয়ার্ড - ১,</div>
-                            <div>বহেরাতৈল, সখিপুর, টাঙ্গাইল</div>
-                          </>
+                          formattedDob
                         )}
-                      </div>
-                    )}
-                  </span>
-                </div>
-                <div className="col-span-6 flex items-start">
-                  <div className="w-[105px] text-slate-850 shrink-0 pt-0.5 leading-tight">
-                    <span>Permanent</span><br />
-                    <span>Address</span>
+                      </span>
+                    </div>
+                    <div className="col-span-5 flex items-baseline">
+                      <span className="w-[50px] text-slate-850 shrink-0 font-normal">Sex</span>
+                      <span className="w-4 text-slate-850">:</span>
+                      <span className="font-normal text-slate-950">
+                        {isInlineEditing ? (
+                          <select
+                            value={record.sex}
+                            onChange={(e) => {
+                              const val = e.target.value as 'Male' | 'Female' | 'Other';
+                              const bn = val === 'Male' ? 'পুরুষ' : val === 'Female' ? 'মহিলা' : 'অন্যান্য';
+                              if (onUpdateRecord) {
+                                onUpdateRecord({ ...record, sex: val, sexBn: bn });
+                              }
+                            }}
+                            className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs"
+                          >
+                            <option value="Female">Female</option>
+                            <option value="Male">Male</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        ) : (
+                          record.sex || "Female"
+                        )}
+                      </span>
+                    </div>
                   </div>
-                  <span className="w-4 pt-0.5 text-slate-850">:</span>
-                  <span className="font-normal text-slate-950 leading-relaxed">
-                    {isInlineEditing ? (
-                      <textarea
-                        rows={2}
-                        value={record.permanentAddressEn}
-                        onChange={(e) => handleFieldChange('permanentAddressEn', e.target.value)}
-                        className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-full"
-                      />
-                    ) : (
-                      <div className="space-y-0.5">
-                        {record.permanentAddressEn ? (
-                          record.permanentAddressEn.includes('\n') ? (
-                            record.permanentAddressEn.split('\n').map((line, idx) => (
-                              <div key={idx}>{line}</div>
-                            ))
-                          ) : record.permanentAddressEn.includes('Ward') ? (
-                            <>
-                              <div>{record.permanentAddressEn.split('Ward')[0]}Ward -</div>
-                              <div>{record.permanentAddressEn.split('Ward')[1]?.replace(/^[\s\-]+/, '') || '1, Baheratail, Sakhipur, Tangail'}</div>
-                            </>
-                          ) : (
-                            <div>{record.permanentAddressEn}</div>
-                          )
+
+                  {/* Row 2: In Word (Full width) */}
+                  <div className="flex items-baseline">
+                    <span className="w-[110px] text-slate-850 shrink-0 font-normal">In Word</span>
+                    <span className="w-4 text-slate-850">:</span>
+                    <span className="font-normal text-slate-950">
+                      {isInlineEditing ? (
+                        <input
+                          type="text"
+                          value={record.dateOfBirthWordsEn}
+                          onChange={(e) => handleFieldChange('dateOfBirthWordsEn', e.target.value)}
+                          className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-full max-w-md"
+                        />
+                      ) : (
+                        record.dateOfBirthWordsEn || "Fifth of September Nineteen Eighty Seven"
+                      )}
+                    </span>
+                  </div>
+
+                  {/* Row 3: নাম (Bangla) & Name (English) */}
+                  <div className="grid grid-cols-12 gap-3 items-baseline pt-0.5">
+                    <div className="col-span-6 flex items-baseline">
+                      <span className="w-[110px] text-slate-850 shrink-0 font-['Noto_Sans_Bengali']">নাম</span>
+                      <span className="w-4 text-slate-850">:</span>
+                      <span className="font-normal text-slate-950 font-['Noto_Sans_Bengali']">
+                        {isInlineEditing ? (
+                          <input
+                            type="text"
+                            value={record.nameBn}
+                            onChange={(e) => handleFieldChange('nameBn', e.target.value)}
+                            className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs font-['Noto_Sans_Bengali'] w-40"
+                          />
                         ) : (
-                          <>
-                            <div>Dabail Nagbari-1972, Ward -</div>
-                            <div>1, Baheratail, Sakhipur,</div>
-                            <div>Tangail</div>
-                          </>
+                          record.nameBn || "সাজেদা আক্তার"
                         )}
+                      </span>
+                    </div>
+                    <div className="col-span-6 flex items-baseline">
+                      <span className="w-[105px] text-slate-850 shrink-0 font-normal">Name</span>
+                      <span className="w-4 text-slate-850">:</span>
+                      <span className="font-normal text-slate-950">
+                        {isInlineEditing ? (
+                          <input
+                            type="text"
+                            value={record.nameEn}
+                            onChange={(e) => handleFieldChange('nameEn', e.target.value)}
+                            className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-40"
+                          />
+                        ) : (
+                          record.nameEn || "Shajeda Akter"
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Parent Information Rows */}
+              {record.parentInfoVisible !== false && (
+                <>
+                  {/* Row 4: মাতা (Bangla) & Mother (English) */}
+                  <div className="grid grid-cols-12 gap-3 items-baseline">
+                    <div className="col-span-6 flex items-baseline">
+                      <span className="w-[110px] text-slate-850 shrink-0 font-['Noto_Sans_Bengali']">মাতা</span>
+                      <span className="w-4 text-slate-850">:</span>
+                      <span className="font-normal text-slate-950 font-['Noto_Sans_Bengali']">
+                        {isInlineEditing ? (
+                          <input
+                            type="text"
+                            value={record.motherNameBn}
+                            onChange={(e) => handleFieldChange('motherNameBn', e.target.value)}
+                            className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs font-['Noto_Sans_Bengali'] w-40"
+                          />
+                        ) : (
+                          record.motherNameBn || "জাহানারা বেগম"
+                        )}
+                      </span>
+                    </div>
+                    <div className="col-span-6 flex items-baseline">
+                      <span className="w-[105px] text-slate-850 shrink-0 font-normal">Mother</span>
+                      <span className="w-4 text-slate-850">:</span>
+                      <span className="font-normal text-slate-950">
+                        {isInlineEditing ? (
+                          <input
+                            type="text"
+                            value={record.motherNameEn}
+                            onChange={(e) => handleFieldChange('motherNameEn', e.target.value)}
+                            className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-40"
+                          />
+                        ) : (
+                          record.motherNameEn || "Jahanara Begum"
+                        )}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Row 5: মাতার জাতীয়তা (Bangla) & Nationality (English) */}
+                  <div className="grid grid-cols-12 gap-3 items-baseline">
+                    <div className="col-span-6 flex items-baseline">
+                      <span className="w-[110px] text-slate-850 shrink-0 font-['Noto_Sans_Bengali']">মাতার জাতীয়তা</span>
+                      <span className="w-4 text-slate-850">:</span>
+                      <span className="font-normal text-slate-950 font-['Noto_Sans_Bengali']">
+                        {isInlineEditing ? (
+                          <input
+                            type="text"
+                            value={record.motherNationalityBn}
+                            onChange={(e) => handleFieldChange('motherNationalityBn', e.target.value)}
+                            className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs font-['Noto_Sans_Bengali'] w-32"
+                          />
+                        ) : (
+                          record.motherNationalityBn || "বাংলাদেশী"
+                        )}
+                      </span>
+                    </div>
+                    <div className="col-span-6 flex items-baseline">
+                      <span className="w-[105px] text-slate-850 shrink-0 font-normal">Nationality</span>
+                      <span className="w-4 text-slate-850">:</span>
+                      <span className="font-normal text-slate-950">
+                        {isInlineEditing ? (
+                          <input
+                            type="text"
+                            value={record.motherNationalityEn}
+                            onChange={(e) => handleFieldChange('motherNationalityEn', e.target.value)}
+                            className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-32"
+                          />
+                        ) : (
+                          record.motherNationalityEn || "Bangladeshi"
+                        )}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Row 6: পিতা (Bangla) & Father (English) */}
+                  <div className="grid grid-cols-12 gap-3 items-baseline">
+                    <div className="col-span-6 flex items-baseline">
+                      <span className="w-[110px] text-slate-850 shrink-0 font-['Noto_Sans_Bengali']">পিতা</span>
+                      <span className="w-4 text-slate-850">:</span>
+                      <span className="font-normal text-slate-950 font-['Noto_Sans_Bengali']">
+                        {isInlineEditing ? (
+                          <input
+                            type="text"
+                            value={record.fatherNameBn}
+                            onChange={(e) => handleFieldChange('fatherNameBn', e.target.value)}
+                            className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs font-['Noto_Sans_Bengali'] w-40"
+                          />
+                        ) : (
+                          record.fatherNameBn || "মোঃ শাহজাহান"
+                        )}
+                      </span>
+                    </div>
+                    <div className="col-span-6 flex items-baseline">
+                      <span className="w-[105px] text-slate-850 shrink-0 font-normal">Father</span>
+                      <span className="w-4 text-slate-850">:</span>
+                      <span className="font-normal text-slate-950">
+                        {isInlineEditing ? (
+                          <input
+                            type="text"
+                            value={record.fatherNameEn}
+                            onChange={(e) => handleFieldChange('fatherNameEn', e.target.value)}
+                            className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-40"
+                          />
+                        ) : (
+                          record.fatherNameEn || "Md Shahjahan"
+                        )}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Row 7: পিতার জাতীয়তা (Bangla) & Nationality (English) */}
+                  <div className="grid grid-cols-12 gap-3 items-baseline">
+                    <div className="col-span-6 flex items-baseline">
+                      <span className="w-[110px] text-slate-850 shrink-0 font-['Noto_Sans_Bengali']">পিতার জাতীয়তা</span>
+                      <span className="w-4 text-slate-850">:</span>
+                      <span className="font-normal text-slate-950 font-['Noto_Sans_Bengali']">
+                        {isInlineEditing ? (
+                          <input
+                            type="text"
+                            value={record.fatherNationalityBn}
+                            onChange={(e) => handleFieldChange('fatherNationalityBn', e.target.value)}
+                            className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs font-['Noto_Sans_Bengali'] w-32"
+                          />
+                        ) : (
+                          record.fatherNationalityBn || "বাংলাদেশী"
+                        )}
+                      </span>
+                    </div>
+                    <div className="col-span-6 flex items-baseline">
+                      <span className="w-[105px] text-slate-850 shrink-0 font-normal">Nationality</span>
+                      <span className="w-4 text-slate-850">:</span>
+                      <span className="font-normal text-slate-950">
+                        {isInlineEditing ? (
+                          <input
+                            type="text"
+                            value={record.fatherNationalityEn}
+                            onChange={(e) => handleFieldChange('fatherNationalityEn', e.target.value)}
+                            className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-32"
+                          />
+                        ) : (
+                          record.fatherNationalityEn || "Bangladeshi"
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Address Information Rows */}
+              {record.addressInfoVisible !== false && (
+                <>
+                  {/* Row 8: জন্মস্থান (Bangla) & Place of Birth (English) */}
+                  <div className="grid grid-cols-12 gap-3 items-baseline">
+                    <div className="col-span-6 flex items-baseline">
+                      <span className="w-[110px] text-slate-850 shrink-0 font-['Noto_Sans_Bengali']">জন্মস্থান</span>
+                      <span className="w-4 text-slate-850">:</span>
+                      <span className="font-normal text-slate-950 font-['Noto_Sans_Bengali']">
+                        {isInlineEditing ? (
+                          <input
+                            type="text"
+                            value={record.placeOfBirthBn}
+                            onChange={(e) => handleFieldChange('placeOfBirthBn', e.target.value)}
+                            className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs font-['Noto_Sans_Bengali'] w-40"
+                          />
+                        ) : (
+                          record.placeOfBirthBn || "টাঙ্গাইল, বাংলাদেশ"
+                        )}
+                      </span>
+                    </div>
+                    <div className="col-span-6 flex items-baseline">
+                      <span className="w-[105px] text-slate-850 shrink-0 font-normal">Place of Birth</span>
+                      <span className="w-4 text-slate-850">:</span>
+                      <span className="font-normal text-slate-950">
+                        {isInlineEditing ? (
+                          <input
+                            type="text"
+                            value={record.placeOfBirthEn}
+                            onChange={(e) => handleFieldChange('placeOfBirthEn', e.target.value)}
+                            className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-40"
+                          />
+                        ) : (
+                          record.placeOfBirthEn || "Tangail, Bangladesh"
+                        )}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Row 9: স্থায়ী ঠিকানা (Bangla) & Permanent Address (English) */}
+                  <div className="grid grid-cols-12 gap-3 items-start pt-0.5">
+                    <div className="col-span-6 flex items-start">
+                      <span className="w-[110px] text-slate-850 shrink-0 font-['Noto_Sans_Bengali'] pt-0.5">স্থায়ী ঠিকানা</span>
+                      <span className="w-4 pt-0.5 text-slate-850">:</span>
+                      <span className="font-normal text-slate-950 font-['Noto_Sans_Bengali'] leading-relaxed">
+                        {isInlineEditing ? (
+                          <textarea
+                            rows={2}
+                            value={record.permanentAddressBn}
+                            onChange={(e) => handleFieldChange('permanentAddressBn', e.target.value)}
+                            className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs font-['Noto_Sans_Bengali'] w-full"
+                          />
+                        ) : (
+                          <div className="space-y-0.5">
+                            {record.permanentAddressBn ? (
+                              record.permanentAddressBn.includes('\n') ? (
+                                record.permanentAddressBn.split('\n').map((line, idx) => (
+                                  <div key={idx}>{line}</div>
+                                ))
+                              ) : record.permanentAddressBn.includes('ওয়ার্ড') ? (
+                                <>
+                                  <div>{record.permanentAddressBn.split(',')[0]}, {record.permanentAddressBn.split(',')[1]},</div>
+                                  <div>{record.permanentAddressBn.split(',').slice(2).join(',').trim()}</div>
+                                </>
+                              ) : (
+                                <div>{record.permanentAddressBn}</div>
+                              )
+                            ) : (
+                              <>
+                                <div>দাবাইল নাগবাড়ী-১৯৭২, ওয়ার্ড - ১,</div>
+                                <div>বহেরাতৈল, সখিপুর, টাঙ্গাইল</div>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </span>
+                    </div>
+                    <div className="col-span-6 flex items-start">
+                      <div className="w-[105px] text-slate-850 shrink-0 pt-0.5 leading-tight">
+                        <span>Permanent</span><br />
+                        <span>Address</span>
                       </div>
-                    )}
-                  </span>
-                </div>
-              </div>
+                      <span className="w-4 pt-0.5 text-slate-850">:</span>
+                      <span className="font-normal text-slate-950 leading-relaxed">
+                        {isInlineEditing ? (
+                          <textarea
+                            rows={2}
+                            value={record.permanentAddressEn}
+                            onChange={(e) => handleFieldChange('permanentAddressEn', e.target.value)}
+                            className="bg-amber-50/80 border border-amber-300 rounded px-1 text-xs w-full"
+                          />
+                        ) : (
+                          <div className="space-y-0.5">
+                            {record.permanentAddressEn ? (
+                              record.permanentAddressEn.includes('\n') ? (
+                                record.permanentAddressEn.split('\n').map((line, idx) => (
+                                  <div key={idx}>{line}</div>
+                                ))
+                              ) : record.permanentAddressEn.includes('Ward') ? (
+                                <>
+                                  <div>{record.permanentAddressEn.split('Ward')[0]}Ward -</div>
+                                  <div>{record.permanentAddressEn.split('Ward')[1]?.replace(/^[\s\-]+/, '') || '1, Baheratail, Sakhipur, Tangail'}</div>
+                                </>
+                              ) : (
+                                <div>{record.permanentAddressEn}</div>
+                              )
+                            ) : (
+                              <>
+                                <div>Dabail Nagbari-1972, Ward -</div>
+                                <div>1, Baheratail, Sakhipur,</div>
+                                <div>Tangail</div>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
 
             </div>
 
@@ -1145,350 +1258,377 @@ export const CertificatePreview: React.FC<CertificatePreviewProps> = ({
               
               {/* Left: Assistant Signature Block */}
               <div className="flex flex-col items-center text-center relative group">
-                {/* Rendered Digital Signature if present */}
-                {record.assistantSignatureUrl ? (
-                  <div className="relative flex flex-col items-center mb-1">
-                    {record.assistantSignatureVisible !== false ? (
-                      <img 
-                        src={record.assistantSignatureUrl} 
-                        alt="Assistant Signature" 
-                        style={{ 
-                          height: `${record.assistantSignatureHeight || 48}px`,
-                          transform: `rotate(${record.assistantSignatureRotation || 0}deg)`
+                {record.assistantSignatureBlockVisible !== false ? (
+                  <>
+                    {/* Rendered Digital Signature if present */}
+                    {record.assistantSignatureUrl ? (
+                      <div className="relative flex flex-col items-center mb-1">
+                        {record.assistantSignatureVisible !== false ? (
+                          <img 
+                            src={record.assistantSignatureUrl} 
+                            alt="Assistant Signature" 
+                            style={{ 
+                              height: `${record.assistantSignatureHeight || 48}px`,
+                              transform: `rotate(${record.assistantSignatureRotation || 0}deg)`
+                            }}
+                            className="max-w-[150px] object-contain filter drop-shadow-xs transition-transform"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div className="h-9 flex items-center justify-center text-[10px] text-slate-400 border border-dashed border-slate-300 rounded px-2 py-0.5 mb-1 print:hidden bg-slate-50">
+                            <EyeOff className="w-3 h-3 text-slate-400 mr-1" />
+                            <span>স্বাক্ষর লুকানো রয়েছে</span>
+                          </div>
+                        )}
+
+                        {onUpdateRecord && (
+                          <div className="absolute -top-7 left-1/2 -translate-x-1/2 flex items-center gap-0.5 bg-slate-900/90 text-white px-2 py-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-20 print:hidden text-[10px]">
+                            {/* Size Minus */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const curH = record.assistantSignatureHeight || 48;
+                                handleFieldChange('assistantSignatureHeight', Math.max(24, curH - 4));
+                              }}
+                              className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
+                              title="ছোট করুন (-4px)"
+                            >
+                              <Minus className="w-2.5 h-2.5" />
+                            </button>
+                            <span className="font-mono px-0.5 text-[9px] text-emerald-400">
+                              {record.assistantSignatureHeight || 48}px
+                            </span>
+                            {/* Size Plus */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const curH = record.assistantSignatureHeight || 48;
+                                handleFieldChange('assistantSignatureHeight', Math.min(96, curH + 4));
+                              }}
+                              className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
+                              title="বড় করুন (+4px)"
+                            >
+                              <Plus className="w-2.5 h-2.5" />
+                            </button>
+
+                            <div className="w-px h-3 bg-slate-700 mx-0.5" />
+
+                            {/* Rotate Left */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const curR = record.assistantSignatureRotation || 0;
+                                handleFieldChange('assistantSignatureRotation', Math.max(-30, curR - 3));
+                              }}
+                              className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
+                              title="বামে ঘোরান (-3°)"
+                            >
+                              <RotateCcw className="w-2.5 h-2.5" />
+                            </button>
+                            {/* Rotate Right */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const curR = record.assistantSignatureRotation || 0;
+                                handleFieldChange('assistantSignatureRotation', Math.min(30, curR + 3));
+                              }}
+                              className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
+                              title="ডানে ঘোরান (+3°)"
+                            >
+                              <RotateCw className="w-2.5 h-2.5" />
+                            </button>
+
+                            <div className="w-px h-3 bg-slate-700 mx-0.5" />
+
+                            {/* Visibility Toggle */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const isVis = record.assistantSignatureVisible !== false;
+                                handleFieldChange('assistantSignatureVisible', !isVis);
+                              }}
+                              className={`p-1 hover:bg-slate-700 rounded-full ${
+                                record.assistantSignatureVisible !== false ? 'text-emerald-400' : 'text-amber-400'
+                              }`}
+                              title={record.assistantSignatureVisible !== false ? "স্বাক্ষর সাময়িক লুকান" : "স্বাক্ষর প্রদর্শন করুন"}
+                            >
+                              {record.assistantSignatureVisible !== false ? <Eye className="w-2.5 h-2.5" /> : <EyeOff className="w-2.5 h-2.5" />}
+                            </button>
+
+                            {/* Edit Pad */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveSignatureTarget('assistant');
+                                setSignatureModalOpen(true);
+                              }}
+                              className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
+                              title="স্বাক্ষর পরিবর্তন ও AI ব্যাকগ্রাউন্ড রিমুভ"
+                            >
+                              <Edit3 className="w-2.5 h-2.5" />
+                            </button>
+
+                            {/* Delete */}
+                            <button
+                              type="button"
+                              onClick={() => handleFieldChange('assistantSignatureUrl', undefined)}
+                              className="p-1 hover:bg-red-800 rounded-full text-red-400 hover:text-red-200"
+                              title="স্বাক্ষর মুছুন"
+                            >
+                              <Trash2 className="w-2.5 h-2.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ) : onUpdateRecord ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveSignatureTarget('assistant');
+                          setSignatureModalOpen(true);
                         }}
-                        className="max-w-[150px] object-contain filter drop-shadow-xs transition-transform"
-                        referrerPolicy="no-referrer"
-                      />
+                        className="mb-2 px-2.5 py-1 text-[11px] font-medium text-slate-600 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-800 border border-dashed border-slate-300 hover:border-emerald-500 rounded-md transition cursor-pointer print:hidden flex items-center gap-1"
+                        title="প্রশাসনিক কর্মকর্তা / সহকারী স্বাক্ষর আঁকুন বা আপলোড করুন"
+                      >
+                        <PenTool className="w-3 h-3 text-emerald-600" />
+                        <span>+ ডিজিটাল স্বাক্ষর যুক্ত করুন</span>
+                      </button>
                     ) : (
-                      <div className="h-9 flex items-center justify-center text-[10px] text-slate-400 border border-dashed border-slate-300 rounded px-2 py-0.5 mb-1 print:hidden bg-slate-50">
-                        <EyeOff className="w-3 h-3 text-slate-400 mr-1" />
-                        <span>স্বাক্ষর লুকানো রয়েছে</span>
-                      </div>
+                      <div className="h-6" />
                     )}
 
-                    {onUpdateRecord && (
-                      <div className="absolute -top-7 left-1/2 -translate-x-1/2 flex items-center gap-0.5 bg-slate-900/90 text-white px-2 py-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-20 print:hidden text-[10px]">
-                        {/* Size Minus */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const curH = record.assistantSignatureHeight || 48;
-                            handleFieldChange('assistantSignatureHeight', Math.max(24, curH - 4));
-                          }}
-                          className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
-                          title="ছোট করুন (-4px)"
-                        >
-                          <Minus className="w-2.5 h-2.5" />
-                        </button>
-                        <span className="font-mono px-0.5 text-[9px] text-emerald-400">
-                          {record.assistantSignatureHeight || 48}px
-                        </span>
-                        {/* Size Plus */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const curH = record.assistantSignatureHeight || 48;
-                            handleFieldChange('assistantSignatureHeight', Math.min(96, curH + 4));
-                          }}
-                          className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
-                          title="বড় করুন (+4px)"
-                        >
-                          <Plus className="w-2.5 h-2.5" />
-                        </button>
-
-                        <div className="w-px h-3 bg-slate-700 mx-0.5" />
-
-                        {/* Rotate Left */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const curR = record.assistantSignatureRotation || 0;
-                            handleFieldChange('assistantSignatureRotation', Math.max(-30, curR - 3));
-                          }}
-                          className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
-                          title="বামে ঘোরান (-3°)"
-                        >
-                          <RotateCcw className="w-2.5 h-2.5" />
-                        </button>
-                        {/* Rotate Right */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const curR = record.assistantSignatureRotation || 0;
-                            handleFieldChange('assistantSignatureRotation', Math.min(30, curR + 3));
-                          }}
-                          className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
-                          title="ডানে ঘোরান (+3°)"
-                        >
-                          <RotateCw className="w-2.5 h-2.5" />
-                        </button>
-
-                        <div className="w-px h-3 bg-slate-700 mx-0.5" />
-
-                        {/* Visibility Toggle */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const isVis = record.assistantSignatureVisible !== false;
-                            handleFieldChange('assistantSignatureVisible', !isVis);
-                          }}
-                          className={`p-1 hover:bg-slate-700 rounded-full ${
-                            record.assistantSignatureVisible !== false ? 'text-emerald-400' : 'text-amber-400'
-                          }`}
-                          title={record.assistantSignatureVisible !== false ? "স্বাক্ষর সাময়িক লুকান" : "স্বাক্ষর প্রদর্শন করুন"}
-                        >
-                          {record.assistantSignatureVisible !== false ? <Eye className="w-2.5 h-2.5" /> : <EyeOff className="w-2.5 h-2.5" />}
-                        </button>
-
-                        {/* Edit Pad */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveSignatureTarget('assistant');
-                            setSignatureModalOpen(true);
-                          }}
-                          className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
-                          title="স্বাক্ষর পরিবর্তন ও AI ব্যাকগ্রাউন্ড রিমুভ"
-                        >
-                          <Edit3 className="w-2.5 h-2.5" />
-                        </button>
-
-                        {/* Delete */}
-                        <button
-                          type="button"
-                          onClick={() => handleFieldChange('assistantSignatureUrl', undefined)}
-                          className="p-1 hover:bg-red-800 rounded-full text-red-400 hover:text-red-200"
-                          title="স্বাক্ষর মুছুন"
-                        >
-                          <Trash2 className="w-2.5 h-2.5" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : onUpdateRecord ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveSignatureTarget('assistant');
-                      setSignatureModalOpen(true);
-                    }}
-                    className="mb-2 px-2.5 py-1 text-[11px] font-medium text-slate-600 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-800 border border-dashed border-slate-300 hover:border-emerald-500 rounded-md transition cursor-pointer print:hidden flex items-center gap-1"
-                    title="প্রশাসনিক কর্মকর্তা / সহকারী স্বাক্ষর আঁকুন বা আপলোড করুন"
-                  >
-                    <PenTool className="w-3 h-3 text-emerald-600" />
-                    <span>+ ডিজিটাল স্বাক্ষর যুক্ত করুন</span>
-                  </button>
+                    <span className="text-[13px] text-slate-850 font-normal">
+                      Seal &amp; Signature
+                    </span>
+                    <span className="text-[13.5px] font-bold text-slate-950 mt-1">
+                      {isInlineEditing ? (
+                        <input
+                          type="text"
+                          value={record.assistantTitleEn || DEFAULT_ASSISTANT_TITLE_EN}
+                          onChange={(e) => handleFieldChange('assistantTitleEn', e.target.value)}
+                          className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-xs font-bold"
+                        />
+                      ) : (
+                        record.assistantTitleEn || DEFAULT_ASSISTANT_TITLE_EN
+                      )}
+                    </span>
+                    <span className="text-[11.5px] text-slate-700 mt-0.5 font-normal">
+                      {isInlineEditing ? (
+                        <input
+                          type="text"
+                          value={record.assistantTitleBn || DEFAULT_ASSISTANT_TITLE_BN}
+                          onChange={(e) => handleFieldChange('assistantTitleBn', e.target.value)}
+                          className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-[11px]"
+                        />
+                      ) : (
+                        record.assistantTitleBn || DEFAULT_ASSISTANT_TITLE_BN
+                      )}
+                    </span>
+                  </>
                 ) : (
-                  <div className="h-6" />
+                  <div className="min-h-[60px] flex items-center justify-center text-[10px] text-slate-300 print:hidden italic">
+                    [সহকারী স্বাক্ষর ব্লক লুকানো]
+                  </div>
                 )}
-
-                <span className="text-[13px] text-slate-850 font-normal">
-                  Seal &amp; Signature
-                </span>
-                <span className="text-[13.5px] font-bold text-slate-950 mt-1">
-                  {isInlineEditing ? (
-                    <input
-                      type="text"
-                      value={record.assistantTitleEn || DEFAULT_ASSISTANT_TITLE_EN}
-                      onChange={(e) => handleFieldChange('assistantTitleEn', e.target.value)}
-                      className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-xs font-bold"
-                    />
-                  ) : (
-                    record.assistantTitleEn || DEFAULT_ASSISTANT_TITLE_EN
-                  )}
-                </span>
-                <span className="text-[11.5px] text-slate-700 mt-0.5 font-normal">
-                  {isInlineEditing ? (
-                    <input
-                      type="text"
-                      value={record.assistantTitleBn || DEFAULT_ASSISTANT_TITLE_BN}
-                      onChange={(e) => handleFieldChange('assistantTitleBn', e.target.value)}
-                      className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-[11px]"
-                    />
-                  ) : (
-                    record.assistantTitleBn || DEFAULT_ASSISTANT_TITLE_BN
-                  )}
-                </span>
               </div>
 
               {/* Right: Registrar Signature Block */}
               <div className="flex flex-col items-center text-center relative group">
-                {/* Rendered Digital Signature if present */}
-                {record.registrarSignatureUrl ? (
-                  <div className="relative flex flex-col items-center mb-1">
-                    {record.registrarSignatureVisible !== false ? (
-                      <img 
-                        src={record.registrarSignatureUrl} 
-                        alt="Registrar Signature" 
-                        style={{ 
-                          height: `${record.registrarSignatureHeight || 48}px`,
-                          transform: `rotate(${record.registrarSignatureRotation || 0}deg)`
+                {record.registrarSignatureBlockVisible !== false ? (
+                  <>
+                    {/* Rendered Digital Signature if present */}
+                    {record.registrarSignatureUrl ? (
+                      <div className="relative flex flex-col items-center mb-1">
+                        {record.registrarSignatureVisible !== false ? (
+                          <img 
+                            src={record.registrarSignatureUrl} 
+                            alt="Registrar Signature" 
+                            style={{ 
+                              height: `${record.registrarSignatureHeight || 48}px`,
+                              transform: `rotate(${record.registrarSignatureRotation || 0}deg)`
+                            }}
+                            className="max-w-[150px] object-contain filter drop-shadow-xs transition-transform"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div className="h-9 flex items-center justify-center text-[10px] text-slate-400 border border-dashed border-slate-300 rounded px-2 py-0.5 mb-1 print:hidden bg-slate-50">
+                            <EyeOff className="w-3 h-3 text-slate-400 mr-1" />
+                            <span>স্বাক্ষর লুকানো রয়েছে</span>
+                          </div>
+                        )}
+
+                        {onUpdateRecord && (
+                          <div className="absolute -top-7 left-1/2 -translate-x-1/2 flex items-center gap-0.5 bg-slate-900/90 text-white px-2 py-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-20 print:hidden text-[10px]">
+                            {/* Size Minus */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const curH = record.registrarSignatureHeight || 48;
+                                handleFieldChange('registrarSignatureHeight', Math.max(24, curH - 4));
+                              }}
+                              className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
+                              title="ছোট করুন (-4px)"
+                            >
+                              <Minus className="w-2.5 h-2.5" />
+                            </button>
+                            <span className="font-mono px-0.5 text-[9px] text-emerald-400">
+                              {record.registrarSignatureHeight || 48}px
+                            </span>
+                            {/* Size Plus */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const curH = record.registrarSignatureHeight || 48;
+                                handleFieldChange('registrarSignatureHeight', Math.min(96, curH + 4));
+                              }}
+                              className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
+                              title="বড় করুন (+4px)"
+                            >
+                              <Plus className="w-2.5 h-2.5" />
+                            </button>
+
+                            <div className="w-px h-3 bg-slate-700 mx-0.5" />
+
+                            {/* Rotate Left */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const curR = record.registrarSignatureRotation || 0;
+                                handleFieldChange('registrarSignatureRotation', Math.max(-30, curR - 3));
+                              }}
+                              className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
+                              title="বামে ঘোরান (-3°)"
+                            >
+                              <RotateCcw className="w-2.5 h-2.5" />
+                            </button>
+                            {/* Rotate Right */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const curR = record.registrarSignatureRotation || 0;
+                                handleFieldChange('registrarSignatureRotation', Math.min(30, curR + 3));
+                              }}
+                              className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
+                              title="ডানে ঘোরান (+3°)"
+                            >
+                              <RotateCw className="w-2.5 h-2.5" />
+                            </button>
+
+                            <div className="w-px h-3 bg-slate-700 mx-0.5" />
+
+                            {/* Visibility Toggle */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const isVis = record.registrarSignatureVisible !== false;
+                                handleFieldChange('registrarSignatureVisible', !isVis);
+                              }}
+                              className={`p-1 hover:bg-slate-700 rounded-full ${
+                                record.registrarSignatureVisible !== false ? 'text-emerald-400' : 'text-amber-400'
+                              }`}
+                              title={record.registrarSignatureVisible !== false ? "স্বাক্ষর সাময়িক লুকান" : "স্বাক্ষর প্রদর্শন করুন"}
+                            >
+                              {record.registrarSignatureVisible !== false ? <Eye className="w-2.5 h-2.5" /> : <EyeOff className="w-2.5 h-2.5" />}
+                            </button>
+
+                            {/* Edit Pad */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveSignatureTarget('registrar');
+                                setSignatureModalOpen(true);
+                              }}
+                              className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
+                              title="স্বাক্ষর পরিবর্তন ও AI ব্যাকগ্রাউন্ড রিমুভ"
+                            >
+                              <Edit3 className="w-2.5 h-2.5" />
+                            </button>
+
+                            {/* Delete */}
+                            <button
+                              type="button"
+                              onClick={() => handleFieldChange('registrarSignatureUrl', undefined)}
+                              className="p-1 hover:bg-red-800 rounded-full text-red-400 hover:text-red-200"
+                              title="স্বাক্ষর মুছুন"
+                            >
+                              <Trash2 className="w-2.5 h-2.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ) : onUpdateRecord ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveSignatureTarget('registrar');
+                          setSignatureModalOpen(true);
                         }}
-                        className="max-w-[150px] object-contain filter drop-shadow-xs transition-transform"
-                        referrerPolicy="no-referrer"
-                      />
+                        className="mb-2 px-2.5 py-1 text-[11px] font-medium text-slate-600 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-800 border border-dashed border-slate-300 hover:border-emerald-500 rounded-md transition cursor-pointer print:hidden flex items-center gap-1"
+                        title="চেয়ারম্যান / নিবন্ধক স্বাক্ষর আঁকুন বা আপলোড করুন"
+                      >
+                        <PenTool className="w-3 h-3 text-emerald-600" />
+                        <span>+ ডিজিটাল স্বাক্ষর যুক্ত করুন</span>
+                      </button>
                     ) : (
-                      <div className="h-9 flex items-center justify-center text-[10px] text-slate-400 border border-dashed border-slate-300 rounded px-2 py-0.5 mb-1 print:hidden bg-slate-50">
-                        <EyeOff className="w-3 h-3 text-slate-400 mr-1" />
-                        <span>স্বাক্ষর লুকানো রয়েছে</span>
-                      </div>
+                      <div className="h-6" />
                     )}
 
-                    {onUpdateRecord && (
-                      <div className="absolute -top-7 left-1/2 -translate-x-1/2 flex items-center gap-0.5 bg-slate-900/90 text-white px-2 py-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-20 print:hidden text-[10px]">
-                        {/* Size Minus */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const curH = record.registrarSignatureHeight || 48;
-                            handleFieldChange('registrarSignatureHeight', Math.max(24, curH - 4));
-                          }}
-                          className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
-                          title="ছোট করুন (-4px)"
-                        >
-                          <Minus className="w-2.5 h-2.5" />
-                        </button>
-                        <span className="font-mono px-0.5 text-[9px] text-emerald-400">
-                          {record.registrarSignatureHeight || 48}px
-                        </span>
-                        {/* Size Plus */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const curH = record.registrarSignatureHeight || 48;
-                            handleFieldChange('registrarSignatureHeight', Math.min(96, curH + 4));
-                          }}
-                          className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
-                          title="বড় করুন (+4px)"
-                        >
-                          <Plus className="w-2.5 h-2.5" />
-                        </button>
-
-                        <div className="w-px h-3 bg-slate-700 mx-0.5" />
-
-                        {/* Rotate Left */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const curR = record.registrarSignatureRotation || 0;
-                            handleFieldChange('registrarSignatureRotation', Math.max(-30, curR - 3));
-                          }}
-                          className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
-                          title="বামে ঘোরান (-3°)"
-                        >
-                          <RotateCcw className="w-2.5 h-2.5" />
-                        </button>
-                        {/* Rotate Right */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const curR = record.registrarSignatureRotation || 0;
-                            handleFieldChange('registrarSignatureRotation', Math.min(30, curR + 3));
-                          }}
-                          className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
-                          title="ডানে ঘোরান (+3°)"
-                        >
-                          <RotateCw className="w-2.5 h-2.5" />
-                        </button>
-
-                        <div className="w-px h-3 bg-slate-700 mx-0.5" />
-
-                        {/* Visibility Toggle */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const isVis = record.registrarSignatureVisible !== false;
-                            handleFieldChange('registrarSignatureVisible', !isVis);
-                          }}
-                          className={`p-1 hover:bg-slate-700 rounded-full ${
-                            record.registrarSignatureVisible !== false ? 'text-emerald-400' : 'text-amber-400'
-                          }`}
-                          title={record.registrarSignatureVisible !== false ? "স্বাক্ষর সাময়িক লুকান" : "স্বাক্ষর প্রদর্শন করুন"}
-                        >
-                          {record.registrarSignatureVisible !== false ? <Eye className="w-2.5 h-2.5" /> : <EyeOff className="w-2.5 h-2.5" />}
-                        </button>
-
-                        {/* Edit Pad */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveSignatureTarget('registrar');
-                            setSignatureModalOpen(true);
-                          }}
-                          className="p-1 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white"
-                          title="স্বাক্ষর পরিবর্তন ও AI ব্যাকগ্রাউন্ড রিমুভ"
-                        >
-                          <Edit3 className="w-2.5 h-2.5" />
-                        </button>
-
-                        {/* Delete */}
-                        <button
-                          type="button"
-                          onClick={() => handleFieldChange('registrarSignatureUrl', undefined)}
-                          className="p-1 hover:bg-red-800 rounded-full text-red-400 hover:text-red-200"
-                          title="স্বাক্ষর মুছুন"
-                        >
-                          <Trash2 className="w-2.5 h-2.5" />
-                        </button>
-                      </div>
+                    <span className="text-[13px] text-slate-850 font-normal">
+                      Seal &amp; Signature
+                    </span>
+                    <span className="text-[13.5px] font-bold text-slate-950 mt-1">
+                      {isInlineEditing ? (
+                        <input
+                          type="text"
+                          value={record.registrarTitleEn || DEFAULT_REGISTRAR_TITLE_EN}
+                          onChange={(e) => handleFieldChange('registrarTitleEn', e.target.value)}
+                          className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-xs font-bold"
+                        />
+                      ) : (
+                        record.registrarTitleEn || DEFAULT_REGISTRAR_TITLE_EN
+                      )}
+                    </span>
+                    {record.registrarTitleBn && (
+                      <span className="text-[11.5px] text-slate-700 mt-0.5 font-normal">
+                        {isInlineEditing ? (
+                          <input
+                            type="text"
+                            value={record.registrarTitleBn}
+                            onChange={(e) => handleFieldChange('registrarTitleBn', e.target.value)}
+                            className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-[11px]"
+                          />
+                        ) : (
+                          record.registrarTitleBn
+                        )}
+                      </span>
                     )}
-                  </div>
-                ) : onUpdateRecord ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveSignatureTarget('registrar');
-                      setSignatureModalOpen(true);
-                    }}
-                    className="mb-2 px-2.5 py-1 text-[11px] font-medium text-slate-600 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-800 border border-dashed border-slate-300 hover:border-emerald-500 rounded-md transition cursor-pointer print:hidden flex items-center gap-1"
-                    title="চেয়ারম্যান / নিবন্ধক স্বাক্ষর আঁকুন বা আপলোড করুন"
-                  >
-                    <PenTool className="w-3 h-3 text-emerald-600" />
-                    <span>+ ডিজিটাল স্বাক্ষর যুক্ত করুন</span>
-                  </button>
+                  </>
                 ) : (
-                  <div className="h-6" />
-                )}
-
-                <span className="text-[13px] text-slate-850 font-normal">
-                  Seal &amp; Signature
-                </span>
-                <span className="text-[13.5px] font-bold text-slate-950 mt-1">
-                  {isInlineEditing ? (
-                    <input
-                      type="text"
-                      value={record.registrarTitleEn || DEFAULT_REGISTRAR_TITLE_EN}
-                      onChange={(e) => handleFieldChange('registrarTitleEn', e.target.value)}
-                      className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-xs font-bold"
-                    />
-                  ) : (
-                    record.registrarTitleEn || DEFAULT_REGISTRAR_TITLE_EN
-                  )}
-                </span>
-                {record.registrarTitleBn && (
-                  <span className="text-[11.5px] text-slate-700 mt-0.5 font-normal">
-                    {isInlineEditing ? (
-                      <input
-                        type="text"
-                        value={record.registrarTitleBn}
-                        onChange={(e) => handleFieldChange('registrarTitleBn', e.target.value)}
-                        className="text-center bg-amber-50/80 border border-amber-300 rounded px-1 text-[11px]"
-                      />
-                    ) : (
-                      record.registrarTitleBn
-                    )}
-                  </span>
+                  <div className="min-h-[60px] flex items-center justify-center text-[10px] text-slate-300 print:hidden italic">
+                    [নিবন্ধক স্বাক্ষর ব্লক লুকানো]
+                  </div>
                 )}
               </div>
 
             </div>
 
             {/* Official Footer Verification Disclaimer Line matching screenshot */}
-            <div className="text-center pt-2">
-              <p className="text-[10px] text-slate-700 font-sans tracking-tight">
-                This certificate is generated from bdris.gov.bd, and to verify this certificate, please scan the above QR Code &amp; Bar Code.
-              </p>
-            </div>
+            {record.footerDisclaimerVisible !== false && (
+              <div className="text-center pt-1.5 space-y-1.5">
+                <p className="text-[10px] text-slate-700 font-sans tracking-tight">
+                  This certificate is generated from bdris.gov.bd, and to verify this certificate, please scan the above QR Code &amp; Bar Code.
+                </p>
+                {/* Mandatory System Disclaimer Box */}
+                <div className="mx-auto inline-block border border-red-400 bg-red-50/90 px-3.5 py-0.5 rounded text-center">
+                  <p className="text-[9.5px] font-bold text-red-700 uppercase tracking-tight">
+                    THIS IS A SOFTWARE PROTOTYPE. IT HAS NO LEGAL OR OFFICIAL VALIDITY.
+                  </p>
+                  <p className="text-[8.5px] font-semibold text-red-600 tracking-wider">
+                    DEMO • NOT A GOVERNMENT DOCUMENT
+                  </p>
+                </div>
+              </div>
+            )}
 
           </div>
 

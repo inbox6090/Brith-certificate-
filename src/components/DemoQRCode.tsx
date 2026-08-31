@@ -120,13 +120,18 @@ export const DemoQRCode: React.FC<DemoQRCodeProps> = ({
             title="QR কোডের নিচের ম্যানুয়াল শব্দ পরিবর্তন করুন"
           />
         ) : (
-          <span 
-            className="text-[11px] font-mono tracking-[0.2em] text-slate-800 mt-1 font-bold block uppercase cursor-pointer hover:text-emerald-700 transition"
-            onClick={() => setShowVerifyModal(true)}
-            title="ক্লিক করে এই শব্দ বা QR লিংক পরিবর্তন করুন"
-          >
-            {displayedWord}
-          </span>
+          <div className="flex flex-col items-center">
+            <span 
+              className="text-[11px] font-mono tracking-[0.2em] text-slate-800 mt-0.5 font-bold block uppercase cursor-pointer hover:text-emerald-700 transition"
+              onClick={() => setShowVerifyModal(true)}
+              title="ক্লিক করে এই শব্দ বা QR লিংক পরিবর্তন করুন"
+            >
+              {displayedWord}
+            </span>
+            <span className="text-[7.5px] font-mono font-bold text-slate-500 uppercase tracking-tight">
+              DEMO QR • NOT VALID
+            </span>
+          </div>
         )}
       </div>
 

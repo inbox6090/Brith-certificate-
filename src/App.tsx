@@ -20,6 +20,7 @@ import { AuditLogModal } from './components/AuditLogModal';
 import { ExportModal } from './components/ExportModal';
 import { EverifyModal } from './components/EverifyModal';
 import { GoogleWorkspaceHub } from './components/GoogleWorkspaceHub';
+import { MasterControlPanel } from './components/MasterControlPanel';
 import { 
   FileText, 
   Eye, 
@@ -36,7 +37,7 @@ import {
 export default function App() {
   const [records, setRecords] = useState<DemoRecord[]>([]);
   const [currentRecord, setCurrentRecord] = useState<DemoRecord>(INITIAL_DEMO_RECORDS[0]);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'form' | 'preview' | 'pad' | 'workspace' | 'logs'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'mcp' | 'form' | 'preview' | 'pad' | 'workspace' | 'logs'>('dashboard');
   const [editorLayout, setEditorLayout] = useState<'split' | 'formOnly' | 'previewOnly'>('split');
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -192,6 +193,7 @@ export default function App() {
             onViewRecord={handleViewRecord}
             onDeleteRecord={handleDeleteRecord}
             onDuplicateRecord={handleDuplicateRecord}
+            onOpenMcp={() => setActiveTab('mcp')}
             onRecordsSynced={(synced) => {
               setRecords(synced);
               saveStoredRecords(synced);
@@ -203,6 +205,19 @@ export default function App() {
               setTimeout(() => window.print(), 300);
             }}
           />
+        )}
+
+        {/* VIEW 1.5: MASTER CONTROL PANEL & AUTOMATION ENGINE */}
+        {activeTab === 'mcp' && (
+          <div className="space-y-4">
+            <MasterControlPanel
+              records={records}
+              activeRecord={currentRecord}
+              onSelectRecord={(rec) => setCurrentRecord(rec)}
+              onViewRecord={handleViewRecord}
+              onEditRecord={handleEditRecord}
+            />
+          </div>
         )}
 
         {/* VIEW 2: FORM & LIVE PREVIEW EDITOR */}

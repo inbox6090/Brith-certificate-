@@ -111,10 +111,25 @@ export interface DemoRecord {
   qrReferenceCode?: string; // e.g. "EETT" or manual word underneath QR code
   qrVerificationUrl?: string; // Full verification URL e.g. "https://bdris.gov.bd/certificate/verify?key=..."
   qrVerificationKey?: string; // 64-char key e.g. "Qtq6RrDDa4pD8RxM9kk6ZR4hBrlXEcYzrs3DQiZe3Vk9YtjZdVmsaufXJguELoG8"
+  qrCodeVisible?: boolean; // toggle QR code visibility (default true)
   barcodeValue?: string; // Barcode value, defaults to referenceId (17-digit BRN)
   barcodeHeight?: number; // Barcode height in px (24 - 48, default 32)
   barcodeShowText?: boolean; // Show human-readable text under barcode (default false for official look)
   barcodeVisible?: boolean; // Barcode visibility toggle (default true)
+
+  // Certificate Layout, Border & Section Visibility Configuration
+  certificateBorderStyle?: 'default' | 'none' | 'double' | 'security_green' | 'classic' | 'ornamental';
+  certificateBorderColor?: string; // e.g. '#0f172a' or '#065f46'
+  headerTitlesVisible?: boolean; // toggle Government & Office title text
+  certificateTitleVisible?: boolean; // toggle 'জন্ম নিবন্ধন সনদ / Birth Registration Certificate'
+  registrationDatesVisible?: boolean; // toggle Date of Registration / Issuance block
+  registrationNumberVisible?: boolean; // toggle 17-digit BRN Number
+  citizenInfoVisible?: boolean; // toggle Date of birth, sex, names
+  parentInfoVisible?: boolean; // toggle father & mother details
+  addressInfoVisible?: boolean; // toggle birthplace & permanent address
+  assistantSignatureBlockVisible?: boolean; // toggle Left Assistant Signature block completely
+  registrarSignatureBlockVisible?: boolean; // toggle Right Registrar Signature block completely
+  footerDisclaimerVisible?: boolean; // toggle prototype watermark/disclaimer notes
 
   // Metadata
   notes?: string;
